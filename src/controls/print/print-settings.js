@@ -22,6 +22,7 @@ const PrintSettings = function PrintSettings(options = {}) {
     map,
     title,
     titleHeader,
+    titleInputMode,
     titlePlaceholderText,
     titleAlignment,
     titleSizes,
@@ -123,6 +124,7 @@ const PrintSettings = function PrintSettings(options = {}) {
       const titleControl = TitleControl({
         title,
         titleHeader,
+        titleInputMode,
         titlePlaceholderText,
         titleAlignment,
         titleSizes,

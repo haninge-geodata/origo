@@ -1,9 +1,10 @@
-import { Input, cuid, Component, Button, Dropdown, ToggleGroup } from '../../ui';
+import { Textarea, Input, cuid, Component, Button, Dropdown, ToggleGroup } from '../../ui';
 
 export default function TitleControl(options = {}) {
   const {
-    titleHeader,
     title,
+    titleHeader,
+    titleInputMode,
     titlePlaceholderText,
     titleAlignment,
     titleSizes
@@ -30,12 +31,22 @@ export default function TitleControl(options = {}) {
 
   return Component({
     onInit() {
-      inputTitle = Input({
-        cls,
-        style,
-        placeholderText: titlePlaceholderText,
-        value: title
-      });
+      if (titleInputMode === 'textarea') {
+        inputTitle = Textarea({
+          cls,
+          placeholderText: titlePlaceholderText,
+          style,
+          cols: 32,
+          value: title
+        });
+      } else {
+        inputTitle = Input({
+          cls,
+          placeholderText: titlePlaceholderText,
+          style,
+          value: title
+        });
+      }
       formatButton = Button({
         cls: 'grow light text-smaller',
         text: '...',
