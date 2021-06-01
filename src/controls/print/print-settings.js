@@ -21,6 +21,7 @@ const PrintSettings = function PrintSettings(options = {}) {
     openIcon = '#ic_tune_24px',
     map,
     title,
+    titleHeader,
     titlePlaceholderText,
     titleAlignment,
     titleSizes,
@@ -121,6 +122,7 @@ const PrintSettings = function PrintSettings(options = {}) {
       });
       const titleControl = TitleControl({
         title,
+        titleHeader,
         titlePlaceholderText,
         titleAlignment,
         titleSizes,

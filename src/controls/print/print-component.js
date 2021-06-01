@@ -20,6 +20,7 @@ const PrintComponent = function PrintComponent(options = {}) {
     map,
     target,
     viewer,
+    titleHeader,
     titlePlaceholderText,
     titleAlignment,
     titleSizes,
@@ -130,6 +131,7 @@ const PrintComponent = function PrintComponent(options = {}) {
   const printSettings = PrintSettings({
     map,
     title,
+    titleHeader,
     titlePlaceholderText,
     titleAlignment,
     titleSizes,

@@ -2,6 +2,7 @@ import { Input, cuid, Component, Button, Dropdown, ToggleGroup } from '../../ui'
 
 export default function TitleControl(options = {}) {
   const {
+    titleHeader,
     title,
     titlePlaceholderText,
     titleAlignment,
@@ -115,7 +116,7 @@ export default function TitleControl(options = {}) {
     render() {
       return `
       <div class="padding-top-large"></div>
-      <h6>Rubrik</h6>
+      <h6>${titleHeader}</h6>
       <div class="padding-smaller o-tooltip active">
         <div class="float-left flex align-center">
           ${inputTitle.render()}
