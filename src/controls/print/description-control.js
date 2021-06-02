@@ -3,6 +3,7 @@ import { Textarea, cuid, Component, Button, Dropdown, ToggleGroup } from '../../
 export default function DescriptionControl(options = {}) {
   const {
     description,
+    descriptionHeader,
     descriptionPlaceholderText,
     descriptionAlignment,
     descriptionSizes
@@ -116,7 +117,7 @@ export default function DescriptionControl(options = {}) {
     render() {
       return `
       <div class="padding-top-large"></div>
-      <h6>Beskrivning</h6>
+      <h6>${descriptionHeader}</h6>
       <div class="padding-smaller o-tooltip active">
         <div class="float-left flex align-center">
           ${textareaDescription.render()}
