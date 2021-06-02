@@ -104,7 +104,7 @@ const PrintComponent = function PrintComponent(options = {}) {
   const footerComponent = Component({
     update() { dom.replace(document.getElementById(this.getId()), this.render()); },
     render() {
-      return `<div id="${this.getId()}" class="o-print-footer flex row justify-space-between padding-left padding-right text-grey-dark text-smaller empty">
+      return `<div id="${this.getId()}" class="o-print-footer flex row justify-space-between text-grey-dark text-smaller empty">
         <div class="o-print-footer-left text-align-left">${leftFooterText}</div>
         ${createdComponent.render()}
       </div>`;
