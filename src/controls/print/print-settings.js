@@ -30,6 +30,7 @@ const PrintSettings = function PrintSettings(options = {}) {
     titleFormatIsVisible,
     description,
     descriptionHeader,
+    descriptionInputMode,
     descriptionPlaceholderText,
     descriptionAlignment,
     descriptionSizes,
@@ -135,6 +136,7 @@ const PrintSettings = function PrintSettings(options = {}) {
       const descriptionControl = DescriptionControl({
         description,
         descriptionHeader,
+        descriptionInputMode,
         descriptionPlaceholderText,
         descriptionAlignment,
         descriptionSizes,

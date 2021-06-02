@@ -1,9 +1,10 @@
-import { Textarea, cuid, Component, Button, Dropdown, ToggleGroup } from '../../ui';
+import { Textarea, Input, cuid, Component, Button, Dropdown, ToggleGroup } from '../../ui';
 
 export default function DescriptionControl(options = {}) {
   const {
     description,
     descriptionHeader,
+    descriptionInputMode,
     descriptionPlaceholderText,
     descriptionAlignment,
     descriptionSizes
@@ -30,6 +31,14 @@ export default function DescriptionControl(options = {}) {
 
   return Component({
     onInit() {
+      if (descriptionInputMode === 'input') {
+        textareaDescription = Input({
+          cls,
+          placeholderText: descriptionPlaceholderText,
+          style,
+          value: description
+        });
+      } else {
       textareaDescription = Textarea({
         cls,
         placeholderText: descriptionPlaceholderText,
@@ -37,6 +46,7 @@ export default function DescriptionControl(options = {}) {
         cols: 32,
         value: description
       });
+      }
       formatButton = Button({
         cls: 'grow light text-smaller',
         text: '...',
