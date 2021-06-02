@@ -21,12 +21,14 @@ const PrintComponent = function PrintComponent(options = {}) {
     target,
     viewer,
     settingsAvailable,
+    titlePrefix,
     titleHeader,
     titleInputMode,
     titlePlaceholderText,
     titleAlignment,
     titleSizes,
     titleFormatIsVisible,
+    descriptionPrefix,
     descriptionHeader,
     descriptionInputMode,
     descriptionPlaceholderText,
@@ -91,11 +93,11 @@ const PrintComponent = function PrintComponent(options = {}) {
 
   const titleComponent = Component({
     update() { dom.replace(document.getElementById(this.getId()), this.render()); },
-    render() { return `<div id="${this.getId()}" class="o-print-header ${titleSize} ${titleAlign} empty">${title}</div>`; }
+    render() { return `<div id="${this.getId()}" class="o-print-header ${titleSize} ${titleAlign} empty">${titlePrefix && title ? `${titlePrefix}: ` : ''}${title}</div>`; }
   });
   const descriptionComponent = Component({
     update() { dom.replace(document.getElementById(this.getId()), this.render()); },
-    render() { return `<div id="${this.getId()}" class="o-print-description padding-y text-grey-dark ${descriptionSize} ${descriptionAlign} empty">${description}</div>`; }
+    render() { return `<div id="${this.getId()}" class="o-print-description padding-y text-grey-dark ${descriptionSize} ${descriptionAlign} empty">${descriptionPrefix && description ? `${descriptionPrefix}: ` : ''}${description}</div>`; }
   });
   const createdComponent = Component({
     update() { dom.replace(document.getElementById(this.getId()), this.render()); },
