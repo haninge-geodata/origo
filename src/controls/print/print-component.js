@@ -21,6 +21,7 @@ const PrintComponent = function PrintComponent(options = {}) {
     target,
     viewer,
     settingsAvailable,
+    settingsIsVisible,
     titlePrefix,
     titleHeader,
     titleInputMode,
@@ -136,6 +137,7 @@ const PrintComponent = function PrintComponent(options = {}) {
 
   const printSettings = PrintSettings({
     map,
+    settingsIsVisible,
     title,
     titleHeader,
     titleInputMode,

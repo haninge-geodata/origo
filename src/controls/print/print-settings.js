@@ -20,6 +20,7 @@ const PrintSettings = function PrintSettings(options = {}) {
     closeIcon = '#ic_close_24px',
     openIcon = '#ic_tune_24px',
     map,
+    settingsIsVisible,
     title,
     titleHeader,
     titleInputMode,
@@ -96,7 +97,7 @@ const PrintSettings = function PrintSettings(options = {}) {
         icon: openIcon,
         tooltipText: 'Visa inställningar',
         tooltipPlacement: 'east',
-        state: 'initial',
+        state: `${settingsIsVisible ? 'hidden' : 'initial'}`,
         validStates: ['initial', 'hidden'],
         click() {
           toggle();
@@ -105,7 +106,7 @@ const PrintSettings = function PrintSettings(options = {}) {
       closeButton = Button({
         cls: 'small round margin-top-small margin-right small icon-smaller grey-lightest',
         icon: closeIcon,
-        state: 'hidden',
+        state: `${settingsIsVisible ? 'initial' : 'hidden'}`,
         validStates: ['initial', 'hidden'],
         ariaLabel: 'Stäng',
         click() {
@@ -190,6 +191,7 @@ const PrintSettings = function PrintSettings(options = {}) {
       if (rotationControl) { components.push(rotationControl); }
       contentComponent.addComponents(components);
       printSettingsContainer = Collapse({
+        expanded: settingsIsVisible,
         cls: 'flex column',
         containerCls: 'collapse-container no-margin height-full',
         collapseX: true,
