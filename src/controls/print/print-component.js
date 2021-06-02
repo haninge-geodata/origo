@@ -20,6 +20,7 @@ const PrintComponent = function PrintComponent(options = {}) {
     map,
     target,
     viewer,
+    settingsAvailable,
     titleHeader,
     titleInputMode,
     titlePlaceholderText,
@@ -178,7 +179,7 @@ const PrintComponent = function PrintComponent(options = {}) {
     name: 'printComponent',
     onInit() {
       this.on('render', this.onRender);
-      this.addComponent(printSettings);
+      if (settingsAvailable) { this.addComponent(printSettings); }
       this.addComponent(printInteractionToggle);
       this.addComponent(printToolbar);
       this.addComponent(closeButton);
@@ -407,7 +408,7 @@ const PrintComponent = function PrintComponent(options = {}) {
           </div>
         </div>
         <div id="o-print-tools-left" class="top-left fixed no-print flex column spacing-vertical-small z-index-ontop-top height-full">
-          ${printSettings.render()}
+          ${settingsAvailable ? printSettings.render() : ''}
           ${printInteractionToggle.render()}
         </div>
         ${printToolbar.render()}
