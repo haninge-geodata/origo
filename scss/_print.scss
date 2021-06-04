@@ -16,6 +16,10 @@ $print-scale-line-font-size: $font-size-smallest;
   overflow: hidden;
 }
 
+#o-print-tools-left > button[aria-label] {
+  position: relative;
+}
+
 // scale-line
 .print-scale-line {
   background: $print-control-bg-color;
