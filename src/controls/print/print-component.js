@@ -411,7 +411,7 @@ const PrintComponent = function PrintComponent(options = {}) {
             </div>
           </div>
         </div>
-        <div id="o-print-tools-left" class="top-left fixed no-print flex column spacing-vertical-small z-index-ontop-top height-full">
+        <div id="o-print-tools-left" class="ol-overlaycontainer top-left fixed no-print flex column spacing-vertical-small z-index-ontop-top height-full">
           ${settingsAvailable ? printSettings.render() : ''}
           ${printInteractionToggle.render()}
         </div>
