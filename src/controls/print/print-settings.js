@@ -25,6 +25,7 @@ const PrintSettings = function PrintSettings(options = {}) {
     titleHeader,
     titleInputMode,
     titlePlaceholderText,
+    titleAvailable,
     titleAlignment,
     titleSizes,
     titleSize,
@@ -33,26 +34,36 @@ const PrintSettings = function PrintSettings(options = {}) {
     descriptionHeader,
     descriptionInputMode,
     descriptionPlaceholderText,
+    descriptionAvailable,
     descriptionAlignment,
     descriptionSizes,
     descriptionSize,
     descriptionFormatIsVisible,
     sizes,
     size,
+    sizeAvailable,
     sizeCustomMinHeight,
     sizeCustomMaxHeight,
     sizeCustomMinWidth,
     sizeCustomMaxWidth,
     orientation,
+    orientationAvailable,
     resolutions,
     resolution,
+    resolutionAvailable,
     scales,
     scaleInitial,
+    setScaleAvailable,
     showMargins,
+    showMarginsAvailable,
     showCreated,
+    showCreatedAvailable,
     showScale,
+    showScaleAvailable,
     showNorthArrow,
+    showNorthArrowAvailable,
     rotation,
+    rotationAvailable,
     rotationStep
   } = options;
 
@@ -119,12 +130,12 @@ const PrintSettings = function PrintSettings(options = {}) {
         components: [openButton, closeButton]
       });
 
-      const orientationControl = OrientationControl({ orientation });
-      const sizeControl = SizeControl({
+      const orientationControl = orientationAvailable && OrientationControl({ orientation });
+      const sizeControl = sizeAvailable && SizeControl({
         initialSize: size,
         sizes: Object.keys(sizes)
       });
-      const titleControl = TitleControl({
+      const titleControl = titleAvailable && TitleControl({
         title,
         titleHeader,
         titleInputMode,
@@ -134,7 +145,7 @@ const PrintSettings = function PrintSettings(options = {}) {
         titleSize,
         titleFormatIsVisible
       });
-      const descriptionControl = DescriptionControl({
+      const descriptionControl = descriptionAvailable && DescriptionControl({
         description,
         descriptionHeader,
         descriptionInputMode,
@@ -144,16 +155,16 @@ const PrintSettings = function PrintSettings(options = {}) {
         descriptionSize,
         descriptionFormatIsVisible
       });
-      const marginControl = MarginControl({ checked: showMargins });
-      const createdControl = CreatedControl({ checked: showCreated });
-      const resolutionControl = ResolutionControl({
+      const marginControl = showMarginsAvailable && MarginControl({ checked: showMargins });
+      const createdControl = showCreatedAvailable && CreatedControl({ checked: showCreated });
+      const resolutionControl = resolutionAvailable && ResolutionControl({
         initialResolution: resolution,
         resolutions
       });
-      const showScaleControl = ShowScaleControl({ checked: showScale });
-      northArrowControl = NorthArrowControl({ showNorthArrow });
-      rotationControl = map.getView().getConstraints().rotation(180) === 180 ? RotationControl({ rotation, rotationStep, map }) : undefined;
-      customSizeControl = CustomSizeControl({
+      const showScaleControl = showScaleAvailable && ShowScaleControl({ checked: showScale });
+      northArrowControl = showNorthArrowAvailable && NorthArrowControl({ showNorthArrow });
+      rotationControl = rotationAvailable && map.getView().getConstraints().rotation(180) === 180 && RotationControl({ rotation, rotationStep, map });
+      customSizeControl = sizeAvailable && CustomSizeControl({
         minHeight: sizeCustomMinHeight,
         maxHeight: sizeCustomMaxHeight,
         minWidth: sizeCustomMinWidth,
@@ -162,7 +173,7 @@ const PrintSettings = function PrintSettings(options = {}) {
         width: sizes.custom ? sizes.custom[1] : sizeCustomMinWidth,
         state: size === 'custom' ? 'active' : 'initial'
       });
-      setScaleControl = SetScaleControl({
+      setScaleControl = setScaleAvailable && SetScaleControl({
         scales,
         initialScale: scaleInitial
       }, map);
@@ -187,8 +198,7 @@ const PrintSettings = function PrintSettings(options = {}) {
           });
         }
       });
-      const components = [customSizeControl, marginControl, orientationControl, sizeControl, titleControl, descriptionControl, createdControl, northArrowControl, setScaleControl, resolutionControl, showScaleControl];
-      if (rotationControl) { components.push(rotationControl); }
+      const components = [customSizeControl, marginControl, orientationControl, sizeControl, titleControl, descriptionControl, createdControl, northArrowControl, setScaleControl, resolutionControl, showScaleControl, rotationControl].filter(component => component);
       contentComponent.addComponents(components);
       printSettingsContainer = Collapse({
         expanded: settingsIsVisible,
@@ -202,22 +212,28 @@ const PrintSettings = function PrintSettings(options = {}) {
       });
       this.addComponent(printSettingsContainer);
 
+      if (descriptionControl) {
       descriptionControl.on('change:description', (evt) => this.dispatch('change:description', evt));
       descriptionControl.on('change:descriptionSize', (evt) => this.dispatch('change:descriptionSize', evt));
       descriptionControl.on('change:descriptionAlign', (evt) => this.dispatch('change:descriptionAlign', evt));
-      marginControl.on('change:check', (evt) => this.dispatch('change:margin', evt));
+      }
+      if (marginControl) { marginControl.on('change:check', (evt) => this.dispatch('change:margin', evt)); }
       orientationControl.on('change:orientation', (evt) => this.dispatch('change:orientation', evt));
+      if (sizeControl) {
       sizeControl.on('change:size', (evt) => this.dispatch('change:size', evt));
       sizeControl.on('change:size', this.onChangeSize.bind(this));
-      customSizeControl.on('change:size', (evt) => this.dispatch('change:size-custom', evt));
+      }
+      if (customSizeControl) { customSizeControl.on('change:size', (evt) => this.dispatch('change:size-custom', evt)); }
+      if (titleControl) {
       titleControl.on('change:title', (evt) => this.dispatch('change:title', evt));
       titleControl.on('change:titleSize', (evt) => this.dispatch('change:titleSize', evt));
       titleControl.on('change:titleAlign', (evt) => this.dispatch('change:titleAlign', evt));
-      createdControl.on('change:check', (evt) => this.dispatch('change:created', evt));
-      northArrowControl.on('change:check', (evt) => this.dispatch('change:northarrow', evt));
-      resolutionControl.on('change:resolution', (evt) => this.dispatch('change:resolution', evt));
-      setScaleControl.on('change:scale', (evt) => this.dispatch('change:scale', evt));
-      showScaleControl.on('change:check', (evt) => this.dispatch('change:showscale', evt));
+      }
+      if (createdControl) { createdControl.on('change:check', (evt) => this.dispatch('change:created', evt)); }
+      if (northArrowControl) { northArrowControl.on('change:check', (evt) => this.dispatch('change:northarrow', evt)); }
+      if (resolutionControl) { resolutionControl.on('change:resolution', (evt) => this.dispatch('change:resolution', evt)); }
+      if (setScaleControl) { setScaleControl.on('change:scale', (evt) => this.dispatch('change:scale', evt)); }
+      if (showScaleControl) { showScaleControl.on('change:check', (evt) => this.dispatch('change:showscale', evt)); }
     },
     onChangeSize(evt) {
       const visible = evt.size === 'custom';

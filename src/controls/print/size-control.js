@@ -9,7 +9,7 @@ export default function SizeControl({ initialSize, sizes }) {
         cls: 'grow light text-smaller',
         text: 'Anpassa',
         state: initialSize === size ? 'active' : 'initial',
-        style: { width: `${String(round2(100 - round2(100 / sizes.length, 1) * (sizes.length - 1), 1))}%` }
+        style: { width: `max(${String(round2(100 - round2(100 / sizes.length, 1) * (sizes.length - 1), 1))}%, 68px)` }
       });
     }
     return Button({

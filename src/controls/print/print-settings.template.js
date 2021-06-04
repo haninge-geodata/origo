@@ -14,45 +14,56 @@ export default function printTemplate({
   showScaleControl
 }) {
   return `
-  <div id="${id}" class="flex column no-print padding-x overflow-auto max-height-100">
-    ${titleControl.render()}
-    <div class="padding-top"></div>
-    ${descriptionControl.render()}
-    <div class="padding-top"></div>
+  <div id="${id}" class="flex column no-print padding-x padding-bottom overflow-auto max-height-100">
+    ${titleControl ? titleControl.render() : ''}
+    ${descriptionControl ? `<div class="padding-top"></div>
+    ${descriptionControl.render()}`
+    : ''}
+    ${sizeControl ? `<div class="padding-top"></div>
     <h6>Storlek</h6>
-    ${sizeControl.render()}
-    <div class="padding-top"></div>
-    ${customSizeControl.render()}
-    <div class="padding-top"></div>
+    ${sizeControl.render()}`
+    : ''}
+    ${customSizeControl ? `<div class="padding-top"></div>
+    ${customSizeControl.render()}`
+    : ''}
+    ${orientationControl ? `<div class="padding-top"></div>
     <h6>Orientering</h6>
-    ${orientationControl.render()}
-    <div class="padding-top"></div>
+    ${orientationControl.render()}`
+    : ''}
+    ${resolutionControl ? `<div class="padding-top"></div>
     <h6>Upplösning</h6>
-    ${resolutionControl.render()}
-    <div class="padding-top"></div>
-      ${setScaleControl.render()}
-    <div class="padding-top-large"></div>
+    ${resolutionControl.render()}`
+    : ''}
+    ${setScaleControl ? `<div class="padding-top"></div>
+    ${setScaleControl.render()}`
+    : ''}
+    ${marginControl ? `<div class="padding-top-large"></div>
     <div class="flex padding-right-small">
       <div class="grow text-normal">Använd marginaler</div>
       ${marginControl.render()}
-    </div>
-    <div class="padding-top-large"></div>
+    </div>`
+    : ''}
+    ${createdControl ? `<div class="padding-top-large"></div>
     <div class="flex padding-right-small">
       <div class="grow text-normal">Visa skapad tid</div>
       ${createdControl.render()}
-    </div>
-    <div class="padding-top-large"></div>
+    </div>`
+    : ''}
+    ${showScaleControl ? `<div class="padding-top-large"></div>
     <div class="flex padding-right-small">
       <div class="grow text-normal">Visa skala</div>
       ${showScaleControl.render()}
-    </div>
-    <div class="padding-top-large"></div>
+    </div>`
+    : ''}
+    ${northArrowControl ? `<div class="padding-top-large"></div>
     <div class="flex padding-right-small">
       <div class="grow text-normal">Visa norrpil</div>
       ${northArrowControl.render()}
-    </div>
-    <div class="padding-bottom-large">
-      ${rotationControl ? rotationControl.render() : ''}
-    </div>
+    </div>`
+    : ''}
+    ${rotationControl ? `<div class="padding-bottom-large">
+      ${rotationControl.render()}
+    </div>`
+    : ''}
   </div>`;
 }
