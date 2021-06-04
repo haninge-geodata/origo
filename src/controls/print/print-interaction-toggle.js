@@ -49,7 +49,6 @@ export default function PrintInteractionToggle(options = {}) {
         tooltipPlacement: 'east',
         state: 'initial',
         validStates: ['initial', 'active'],
-        style: 'width: fit-content;',
         click() {
           toggleState();
         },
