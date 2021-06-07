@@ -7,7 +7,8 @@ export default function TitleControl(options = {}) {
     titleInputMode,
     titlePlaceholderText,
     titleAlignment,
-    titleSizes
+    titleSizes,
+    titleFormatHidden
   } = options;
 
   let {
@@ -48,7 +49,7 @@ export default function TitleControl(options = {}) {
         });
       }
       formatButton = Button({
-        cls: 'grow light text-smaller',
+        cls: `grow light text-smaller${titleFormatHidden ? ' hidden' : ''}`,
         text: '...',
         state: 'initial',
         style: { width: '8%' }

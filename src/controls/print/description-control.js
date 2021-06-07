@@ -7,7 +7,8 @@ export default function DescriptionControl(options = {}) {
     descriptionInputMode,
     descriptionPlaceholderText,
     descriptionAlignment,
-    descriptionSizes
+    descriptionSizes,
+    descriptionFormatHidden
   } = options;
 
   let {
@@ -48,7 +49,7 @@ export default function DescriptionControl(options = {}) {
       });
       }
       formatButton = Button({
-        cls: 'grow light text-smaller',
+        cls: `grow light text-smaller${descriptionFormatHidden ? ' hidden' : ''}`,
         text: '...',
         state: 'initial',
         style: { }

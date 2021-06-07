@@ -30,6 +30,7 @@ const PrintSettings = function PrintSettings(options = {}) {
     titleSizes,
     titleSize,
     titleFormatIsVisible,
+    titleFormatHidden,
     description,
     descriptionHeader,
     descriptionInputMode,
@@ -39,6 +40,7 @@ const PrintSettings = function PrintSettings(options = {}) {
     descriptionSizes,
     descriptionSize,
     descriptionFormatIsVisible,
+    descriptionFormatHidden,
     sizes,
     size,
     sizeAvailable,
@@ -143,7 +145,8 @@ const PrintSettings = function PrintSettings(options = {}) {
         titleAlignment,
         titleSizes,
         titleSize,
-        titleFormatIsVisible
+        titleFormatIsVisible,
+        titleFormatHidden
       });
       const descriptionControl = descriptionAvailable && DescriptionControl({
         description,
@@ -153,7 +156,8 @@ const PrintSettings = function PrintSettings(options = {}) {
         descriptionAlignment,
         descriptionSizes,
         descriptionSize,
-        descriptionFormatIsVisible
+        descriptionFormatIsVisible,
+        descriptionFormatHidden
       });
       const marginControl = showMarginsAvailable && MarginControl({ checked: showMargins });
       const createdControl = showCreatedAvailable && CreatedControl({ checked: showCreated });
