@@ -52,6 +52,9 @@ export default function Dropdown(options = {}) {
     });
   };
 
+  const enable = () => dropdownButton.enable();
+  const disable = () => dropdownButton.disable();
+
   const toggle = function toggle() {
     const customEvt = new CustomEvent('collapse:toggle', {
       bubbles: true
@@ -62,6 +65,8 @@ export default function Dropdown(options = {}) {
   return Component({
     setButtonText,
     setItems,
+    enable,
+    disable,
     onInit() {
       let position;
 

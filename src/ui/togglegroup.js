@@ -14,6 +14,8 @@ const ToggleGroup = function ToggleGroup(options = {}) {
 
   const renderToggleItems = comps => comps.reduce((acc, comp) => acc + comp.render(), '');
 
+  let onClick;
+
   function toggleHandler(evt) {
     const parent = document.getElementById(this.getId());
     let newActive;
@@ -36,12 +38,23 @@ const ToggleGroup = function ToggleGroup(options = {}) {
   }
 
   return Component({
+    enable() {
+      this.getComponents().forEach(component => component.enable());
+      const el = document.getElementById(this.getId());
+      el.addEventListener('click', onClick);
+    },
+    disable() {
+      this.getComponents().forEach(component => component.disable());
+      const el = document.getElementById(this.getId());
+      el.removeEventListener('click', onClick);
+    },
     onInit() {
       this.addComponents(components);
+      onClick = toggleHandler.bind(this);
     },
     onRender() {
       const el = document.getElementById(this.getId());
-      el.addEventListener('click', toggleHandler.bind(this));
+      el.addEventListener('click', onClick);
       this.dispatch('render');
     },
     render() {

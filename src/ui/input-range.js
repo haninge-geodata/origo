@@ -16,7 +16,18 @@ export default function InputRange(options = {}) {
   const style = createStyle(styleSettings);
   let inputEl;
 
+  const enable = () => {
+    inputEl.disabled = false;
+    inputEl.classList.remove('disabled');
+  };
+  const disable = () => {
+    inputEl.disabled = true;
+    inputEl.classList.add('disabled');
+  };
+
   return Component({
+    enable,
+    disable,
     onInput() {
       this.dispatch('change', { value: inputEl.value });
     },

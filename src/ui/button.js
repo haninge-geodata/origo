@@ -54,6 +54,15 @@ export default function Button(options = {}) {
     }
   };
 
+  const enable = () => {
+    buttonEl.disabled = false;
+    buttonEl.classList.remove('disabled');
+  };
+  const disable = () => {
+    buttonEl.disabled = true;
+    buttonEl.classList.add('disabled');
+  };
+
   const getTooltip = () => {
     if (tooltipText) {
       return `<span data-tooltip="${tooltipText}" data-placement="${tooltipPlacement}"></span>`;
@@ -97,7 +106,10 @@ export default function Button(options = {}) {
 
   return Component({
     data,
+    setState,
     getState,
+    enable,
+    disable,
     onInit() {
       this.on('change', onChange.bind(this));
       this.on('update', onUpdate.bind(this));
@@ -128,7 +140,6 @@ export default function Button(options = {}) {
       if (iconComponent) {
         iconComponent.setIcon(newIcon);
       }
-    },
-    setState
+    }
   });
 }

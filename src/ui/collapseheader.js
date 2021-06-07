@@ -27,6 +27,9 @@ export default function CollapseHeader(options = {}) {
     }
   });
 
+  const enable = () => headerButton.enable();
+  const disable = () => headerButton.disable();
+
   const titleCmp = Component({
     render() {
       return `<span id="${this.getId()}" class="grow">${title}</span>`;
@@ -34,6 +37,8 @@ export default function CollapseHeader(options = {}) {
   });
 
   return Component({
+    enable,
+    disable,
     onInit() {
       this.addComponents([headerButton, titleCmp]);
     },

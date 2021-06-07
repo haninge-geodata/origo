@@ -13,11 +13,23 @@ export default function Textarea(options = {}) {
     value = ''
   } = options;
   const style = createStyle(styleSettings);
+  let el;
+
+  const enable = () => {
+    el.disabled = false;
+    el.classList.remove('disabled');
+  };
+  const disable = () => {
+    el.disabled = true;
+    el.classList.add('disabled');
+  };
 
   return Component({
     getValue() { return value; },
+    enable,
+    disable,
     onRender() {
-      const el = document.getElementById(this.getId());
+      el = document.getElementById(this.getId());
       el.addEventListener('keyup', this.onChange.bind(this));
     },
     onChange(evt) {
