@@ -6,7 +6,11 @@ const Print = function Print(options = {}) {
     icon = '#ic_print_24px',
     placement = ['menu'],
     logo = {},
+    logoPlacement = 'bottom-left',
     northArrow = {},
+    northArrowPlacement = 'top-right',
+    scaleLinePlacement = 'bottom-right',
+    attributionPlacement = 'bottom-left',
     printFormats = ['png', 'pdf'],
     settingsDisabled = false,
     settingsAvailable = true,
@@ -106,7 +110,11 @@ const Print = function Print(options = {}) {
       viewer = evt.target;
       const printComponent = PrintComponent({
         logo,
+        logoPlacement,
         northArrow,
+        northArrowPlacement,
+        scaleLinePlacement,
+        attributionPlacement,
         filename,
         map: viewer.getMap(),
         target: viewer.getId(),

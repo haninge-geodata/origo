@@ -7,7 +7,11 @@ import NorthArrow from './north-arrow';
 export default function PrintMap(options = {}) {
   const {
     logo,
+    logoPlacement,
     northArrow,
+    northArrowPlacement,
+    scaleLinePlacement,
+    attributionPlacement,
     map
   } = options;
   let {
@@ -17,16 +21,21 @@ export default function PrintMap(options = {}) {
   let mapControls;
   let scaleLine;
 
-  const topRightMapControls = El({ cls: 'flex column align-start absolute top-right transparent z-index-ontop-middle' });
-  const bottomLeftMapControls = El({ cls: 'flex column align-start absolute bottom-left transparent z-index-ontop-middle' });
-  const bottomRightMapControls = El({ cls: 'flex column align-start absolute bottom-right transparent z-index-ontop-middle' });
+  const mapControlContainers = {
+    'top-left': El({ cls: 'flex column align-start absolute top-left transparent z-index-ontop-middle' }),
+    'top-center': El({ cls: 'flex column align-start absolute top-center transparent z-index-ontop-middle' }),
+    'top-right': El({ cls: 'flex column align-start absolute top-right transparent z-index-ontop-middle' }),
+    'bottom-left': El({ cls: 'flex column align-start absolute bottom-left transparent z-index-ontop-middle' }),
+    'bottom-center': El({ cls: 'flex column align-start absolute bottom-center transparent z-index-ontop-middle' }),
+    'bottom-right': El({ cls: 'flex column align-start absolute bottom-right transparent z-index-ontop-middle' })
+  };
+
   const logoComponent = Logo({ logo });
   const northArrowComponent = NorthArrow({ northArrow, map });
 
   return Component({
     onInit() {
-      this.addComponent(bottomLeftMapControls);
-      this.addComponent(bottomRightMapControls);
+      this.addComponents(Object.values(mapControlContainers));
       this.on('change:toggleNorthArrow', this.toggleNorthArrow.bind(this));
       this.on('change:toggleScale', this.toggleScale.bind(this));
       this.on('change:setDPI', this.setDpi.bind(this));
@@ -42,7 +51,7 @@ export default function PrintMap(options = {}) {
       northArrowComponent.setVisible(display);
     },
     toggleScale(display) {
-      const elScale = document.getElementById(bottomRightMapControls.getId());
+      const elScale = document.getElementById(mapControlContainers[scaleLinePlacement].getId());
       if (display.showScale === false) {
         elScale.style.display = 'none';
       } else {
@@ -50,15 +59,15 @@ export default function PrintMap(options = {}) {
       }
     },
     addPrintControls() {
-      const el = document.getElementById(bottomLeftMapControls.getId());
+      const el = document.getElementById(mapControlContainers[logoPlacement].getId());
       el.appendChild(dom.html(logoComponent.render()));
-      const el2 = document.getElementById(topRightMapControls.getId());
+      const el2 = document.getElementById(mapControlContainers[northArrowPlacement].getId());
       el2.appendChild(dom.html(northArrowComponent.render()));
       northArrowComponent.onRotationChanged();
       northArrowComponent.setVisible({ showNorthArrow });
 
       scaleLine = new olScaleLine({
-        target: bottomRightMapControls.getId(),
+        target: mapControlContainers[scaleLinePlacement].getId(),
         bar: true,
         text: true,
         steps: 2
@@ -67,7 +76,7 @@ export default function PrintMap(options = {}) {
         className: 'print-attribution',
         collapsible: false,
         collapsed: false,
-        target: bottomLeftMapControls.getId()
+        target: mapControlContainers[attributionPlacement].getId()
       });
       mapControls = [scaleLine, attribution];
       map.addControl(scaleLine);
@@ -77,9 +86,12 @@ export default function PrintMap(options = {}) {
     render() {
       return `
       <div class="flex grow relative no-margin width-full height-full">
-        ${topRightMapControls.render()}
-        ${bottomLeftMapControls.render()}
-        ${bottomRightMapControls.render()}
+        ${mapControlContainers['top-left'].render()}
+        ${mapControlContainers['top-center'].render()}
+        ${mapControlContainers['top-right'].render()}
+        ${mapControlContainers['bottom-left'].render()}
+        ${mapControlContainers['bottom-center'].render()}
+        ${mapControlContainers['bottom-right'].render()}
         <div id="${this.getId()}" class="no-margin width-full height-full"></div>
       </div>
       `;
