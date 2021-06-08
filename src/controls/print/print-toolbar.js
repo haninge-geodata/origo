@@ -1,13 +1,17 @@
 import { Button, Component } from '../../ui';
 
-const PrintToolbar = function PrintToolbar() {
+const PrintToolbar = function PrintToolbar(options = {}) {
+  const {
+    printFormats
+  } = options;
+
   const pngButton = Button({
-    cls: 'light text-smaller padding-left-large',
+    cls: `light text-smaller padding-left-large${(printFormats.indexOf('png') === -1) ? ' o-hidden' : ''}`,
     text: 'Spara bild'
   });
 
   const pdfButton = Button({
-    cls: 'light text-smaller padding-right-large',
+    cls: `light text-smaller padding-right-large${(printFormats.indexOf('pdf') === -1) ? ' o-hidden' : ''}`,
     text: 'Skapa pdf'
   });
 
@@ -27,6 +31,9 @@ const PrintToolbar = function PrintToolbar() {
       this.dispatch('render');
     },
     render() {
+      if (printFormats.length === 0) {
+        return '';
+      }
       return `
       <div
         class="flex box fixed bottom-center button-group divider-horizontal box-shadow rounded-large bg-inverted z-index-ontop-high no-print"
