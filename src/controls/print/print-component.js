@@ -15,7 +15,11 @@ import { afterRender, beforeRender } from './download-callback';
 const PrintComponent = function PrintComponent(options = {}) {
   const {
     logo,
+    logoPlacement,
     northArrow,
+    northArrowPlacement,
+    scaleLinePlacement,
+    attributionPlacement,
     filename = 'origo-map',
     map,
     target,
@@ -140,7 +144,16 @@ const PrintComponent = function PrintComponent(options = {}) {
     }
   });
 
-  const printMapComponent = PrintMap({ logo, northArrow, map, viewer, showNorthArrow });
+  const printMapComponent = PrintMap({
+    logo,
+    logoPlacement,
+    northArrow,
+    northArrowPlacement,
+    scaleLinePlacement,
+    attributionPlacement,
+    map,
+    showNorthArrow
+  });
 
   const setScale = function setScale(scale) {
     printScale = scale;
