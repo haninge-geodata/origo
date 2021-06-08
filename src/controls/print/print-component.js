@@ -72,7 +72,8 @@ const PrintComponent = function PrintComponent(options = {}) {
     rotationAvailable,
     rotationStep,
     leftFooterText,
-    mapInteractionsActive
+    mapInteractionsActive,
+    mapInteractionToggleAvailable
   } = options;
 
   let {
@@ -220,7 +221,7 @@ const PrintComponent = function PrintComponent(options = {}) {
     rotationAvailable,
     rotationStep
   });
-  const printInteractionToggle = PrintInteractionToggle({ map, target, mapInteractionsActive, pageSettings: viewer.getViewerOptions().pageSettings });
+  const printInteractionToggle = mapInteractionToggleAvailable && PrintInteractionToggle({ map, target, mapInteractionsActive, pageSettings: viewer.getViewerOptions().pageSettings });
   const printToolbar = PrintToolbar();
   const closeButton = Button({
     cls: 'fixed top-right medium round icon-smaller light box-shadow z-index-ontop-high',
@@ -232,7 +233,7 @@ const PrintComponent = function PrintComponent(options = {}) {
     onInit() {
       this.on('render', this.onRender);
       if (settingsAvailable) { this.addComponent(printSettings); }
-      this.addComponent(printInteractionToggle);
+      if (mapInteractionToggleAvailable) { this.addComponent(printInteractionToggle); }
       this.addComponent(printToolbar);
       this.addComponent(closeButton);
       printToolbar.on('PNG', this.downloadPNG.bind(this));
@@ -460,7 +461,7 @@ const PrintComponent = function PrintComponent(options = {}) {
           </div>
         </div>
         <div id="o-print-tools-left" class="ol-overlaycontainer top-left fixed no-print flex align-start column spacing-vertical-small z-index-ontop-top height-full">
-          ${printInteractionToggle.render()}
+          ${mapInteractionToggleAvailable ? printInteractionToggle.render() : ''}
           ${settingsAvailable ? printSettings.render() : ''}
         </div>
         ${printToolbar.render()}
