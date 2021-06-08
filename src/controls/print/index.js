@@ -80,7 +80,8 @@ const Print = function Print(options = {}) {
     rotationAvailable = true,
     leftFooterText = '',
     filename,
-    mapInteractionsActive = false
+    mapInteractionsActive = false,
+    mapInteractionToggleAvailable = true
   } = options;
   let {
     showNorthArrow = true
@@ -172,7 +173,8 @@ const Print = function Print(options = {}) {
         rotationAvailable,
         rotationStep,
         leftFooterText,
-        mapInteractionsActive
+        mapInteractionsActive,
+        mapInteractionToggleAvailable
       });
       if (placement.indexOf('screen') > -1) {
         mapTools = `${viewer.getMain().getMapTools().getId()}`;
