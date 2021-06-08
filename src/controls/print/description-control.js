@@ -31,6 +31,14 @@ export default function DescriptionControl(options = {}) {
   let selectSize;
 
   return Component({
+    enable() {
+      textareaDescription.enable();
+      formatButton.enable();
+    },
+    disable() {
+      textareaDescription.disable();
+      formatButton.disable();
+    },
     onInit() {
       if (descriptionInputMode === 'input') {
         textareaDescription = Input({
@@ -40,13 +48,13 @@ export default function DescriptionControl(options = {}) {
           value: description
         });
       } else {
-      textareaDescription = Textarea({
-        cls,
-        placeholderText: descriptionPlaceholderText,
-        style,
-        cols: 32,
-        value: description
-      });
+        textareaDescription = Textarea({
+          cls,
+          placeholderText: descriptionPlaceholderText,
+          style,
+          cols: 32,
+          value: description
+        });
       }
       formatButton = Button({
         cls: `grow light text-smaller${descriptionFormatHidden ? ' hidden' : ''}`,

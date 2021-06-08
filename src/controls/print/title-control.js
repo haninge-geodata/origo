@@ -31,6 +31,14 @@ export default function TitleControl(options = {}) {
   let selectSize;
 
   return Component({
+    enable() {
+      inputTitle.enable();
+      formatButton.enable();
+    },
+    disable() {
+      inputTitle.disable();
+      formatButton.disable();
+    },
     onInit() {
       if (titleInputMode === 'textarea') {
         inputTitle = Textarea({

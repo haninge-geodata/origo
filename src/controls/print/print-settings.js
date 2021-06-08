@@ -25,6 +25,7 @@ const PrintSettings = function PrintSettings(options = {}) {
     titleHeader,
     titleInputMode,
     titlePlaceholderText,
+    titleDisabled,
     titleAvailable,
     titleAlignment,
     titleSizes,
@@ -35,6 +36,7 @@ const PrintSettings = function PrintSettings(options = {}) {
     descriptionHeader,
     descriptionInputMode,
     descriptionPlaceholderText,
+    descriptionDisabled,
     descriptionAvailable,
     descriptionAlignment,
     descriptionSizes,
@@ -43,28 +45,37 @@ const PrintSettings = function PrintSettings(options = {}) {
     descriptionFormatHidden,
     sizes,
     size,
+    sizeDisabled,
     sizeAvailable,
     sizeCustomMinHeight,
     sizeCustomMaxHeight,
     sizeCustomMinWidth,
     sizeCustomMaxWidth,
     orientation,
+    orientationDisabled,
     orientationAvailable,
     resolutions,
     resolution,
+    resolutionDisabled,
     resolutionAvailable,
     scales,
     scaleInitial,
+    setScaleDisabled,
     setScaleAvailable,
     showMargins,
+    showMarginsDisabled,
     showMarginsAvailable,
     showCreated,
+    showCreatedDisabled,
     showCreatedAvailable,
     showScale,
+    showScaleDisabled,
     showScaleAvailable,
     showNorthArrow,
+    showNorthArrowDisabled,
     showNorthArrowAvailable,
     rotation,
+    rotationDisabled,
     rotationAvailable,
     rotationStep
   } = options;
@@ -183,7 +194,20 @@ const PrintSettings = function PrintSettings(options = {}) {
       }, map);
 
       contentComponent = Component({
-        onRender() { this.dispatch('render'); },
+        onRender() {
+          this.dispatch('render');
+          if (orientationControl && orientationDisabled) { orientationControl.disable(); }
+          if (sizeControl && sizeDisabled) { sizeControl.disable(); }
+          if (titleControl && titleDisabled) { titleControl.disable(); }
+          if (descriptionControl && descriptionDisabled) { descriptionControl.disable(); }
+          if (marginControl && showMarginsDisabled) { marginControl.disable(); }
+          if (createdControl && showCreatedDisabled) { createdControl.disable(); }
+          if (resolutionControl && resolutionDisabled) { resolutionControl.disable(); }
+          if (showScaleControl && showScaleDisabled) { showScaleControl.disable(); }
+          if (northArrowControl && showNorthArrowDisabled) { northArrowControl.disable(); }
+          if (rotationControl && rotationDisabled) { rotationControl.disable(); }
+          if (setScaleControl && setScaleDisabled) { setScaleControl.disable(); }
+        },
         render() {
           return printSettingsTemplate({
             id: this.getId(),
@@ -217,21 +241,21 @@ const PrintSettings = function PrintSettings(options = {}) {
       this.addComponent(printSettingsContainer);
 
       if (descriptionControl) {
-      descriptionControl.on('change:description', (evt) => this.dispatch('change:description', evt));
-      descriptionControl.on('change:descriptionSize', (evt) => this.dispatch('change:descriptionSize', evt));
-      descriptionControl.on('change:descriptionAlign', (evt) => this.dispatch('change:descriptionAlign', evt));
+        descriptionControl.on('change:description', (evt) => this.dispatch('change:description', evt));
+        descriptionControl.on('change:descriptionSize', (evt) => this.dispatch('change:descriptionSize', evt));
+        descriptionControl.on('change:descriptionAlign', (evt) => this.dispatch('change:descriptionAlign', evt));
       }
       if (marginControl) { marginControl.on('change:check', (evt) => this.dispatch('change:margin', evt)); }
       orientationControl.on('change:orientation', (evt) => this.dispatch('change:orientation', evt));
       if (sizeControl) {
-      sizeControl.on('change:size', (evt) => this.dispatch('change:size', evt));
-      sizeControl.on('change:size', this.onChangeSize.bind(this));
+        sizeControl.on('change:size', (evt) => this.dispatch('change:size', evt));
+        sizeControl.on('change:size', this.onChangeSize.bind(this));
       }
       if (customSizeControl) { customSizeControl.on('change:size', (evt) => this.dispatch('change:size-custom', evt)); }
       if (titleControl) {
-      titleControl.on('change:title', (evt) => this.dispatch('change:title', evt));
-      titleControl.on('change:titleSize', (evt) => this.dispatch('change:titleSize', evt));
-      titleControl.on('change:titleAlign', (evt) => this.dispatch('change:titleAlign', evt));
+        titleControl.on('change:title', (evt) => this.dispatch('change:title', evt));
+        titleControl.on('change:titleSize', (evt) => this.dispatch('change:titleSize', evt));
+        titleControl.on('change:titleAlign', (evt) => this.dispatch('change:titleAlign', evt));
       }
       if (createdControl) { createdControl.on('change:check', (evt) => this.dispatch('change:created', evt)); }
       if (northArrowControl) { northArrowControl.on('change:check', (evt) => this.dispatch('change:northarrow', evt)); }

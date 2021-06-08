@@ -1,0 +1,85 @@
+// Styling for disabled input range sliders
+$o-inputrange-disabled-thumb-color: $grey-light;
+$o-inputrange-disabled-track-color: $grey-lighter;
+$o-inputrange-disabled-track-lower-color: $grey;
+$o-inputrange-disabled-track-height: 4px;
+$o-inputrange-disabled-track-width: 100%;
+$o-inputrange-disabled-cursor: not-allowed;
+
+//Chrome
+input[type=range]:disabled{
+  -webkit-appearance: none;
+}
+input[type=range]:disabled::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  border: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: $o-inputrange-disabled-thumb-color;
+  margin-top: -6px;
+  cursor: $o-inputrange-disabled-cursor;
+}
+input[type=range]:disabled::-webkit-slider-runnable-track {
+  width: $o-inputrange-disabled-track-width;
+  height: $o-inputrange-disabled-track-height;
+  background: $o-inputrange-disabled-track-color;
+  border: none;
+  border-radius: 3px;
+  cursor: $o-inputrange-disabled-cursor;
+}
+
+// Firefox
+input[type=range]:disabled{
+  background: rgba(255, 255, 255, 0); 
+  /* fix for FF unable to apply focus style bug  */
+  border: 1px solid white;
+  /*required for proper track sizing in FF*/
+  width: $o-inputrange-disabled-track-width;
+}
+input[type=range]:disabled::-moz-range-track {
+  width: $o-inputrange-disabled-track-width;
+  height: $o-inputrange-disabled-track-height;
+  background: $o-inputrange-disabled-track-color;
+  border: none;
+  border-radius: 3px;
+  cursor: $o-inputrange-disabled-cursor;
+}
+input[type=range]:disabled::-moz-range-thumb {
+  border: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 50%;
+  background: $o-inputrange-disabled-thumb-color;
+  cursor: $o-inputrange-disabled-cursor;
+}
+
+// IE
+input[type=range]:disabled::-ms-track {
+  width: $o-inputrange-disabled-track-width;
+  height: $o-inputrange-disabled-track-height;
+  /*remove bg colour from the track, we'll use ms-fill-lower and ms-fill-upper instead */
+  background: transparent;
+  /*leave room for the larger thumb to overflow with a transparent border */
+  border-color: transparent;
+  border-width: 6px 0;
+  /*remove default tick marks*/
+  color: transparent;
+  cursor: $o-inputrange-disabled-cursor;
+}
+input[type=range]:disabled::-ms-fill-lower {
+  background: $o-inputrange-disabled-track-lower-color;
+  border-radius: 10px;
+}
+input[type=range]:disabled::-ms-fill-upper {
+  background: $o-inputrange-disabled-track-color;
+  border-radius: 10px;
+}
+input[type=range]:disabled::-ms-thumb {
+  border: none;
+  height: 17px;
+  width: 17px;
+  border-radius: 50%;
+  background: $o-inputrange-disabled-thumb-color;
+  cursor: $o-inputrange-disabled-cursor;
+}

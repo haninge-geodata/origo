@@ -21,6 +21,8 @@ export default function RotationControl(options = {}) {
   });
 
   return Component({
+    enable() { rotationSlider.enable(); },
+    disable() { rotationSlider.disable(); },
     onInit() {
       this.addComponents([rotationSlider]);
       rotationSlider.on('change', this.onChangeRotation.bind(this));

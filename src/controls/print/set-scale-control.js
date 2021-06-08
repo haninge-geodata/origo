@@ -16,6 +16,8 @@ export default function SetScaleControl(options = {}, map) {
   }
 
   return Component({
+    enable() { selectScale.enable(); },
+    disable() { selectScale.disable(); },
     onInit() {
       selectScale = Dropdown({
         direction: 'up',
