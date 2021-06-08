@@ -20,6 +20,7 @@ const PrintComponent = function PrintComponent(options = {}) {
     map,
     target,
     viewer,
+    printFormats,
     settingsAvailable,
     settingsIsVisible,
     titlePrefix,
@@ -222,7 +223,7 @@ const PrintComponent = function PrintComponent(options = {}) {
     rotationStep
   });
   const printInteractionToggle = mapInteractionToggleAvailable && PrintInteractionToggle({ map, target, mapInteractionsActive, pageSettings: viewer.getViewerOptions().pageSettings });
-  const printToolbar = PrintToolbar();
+  const printToolbar = PrintToolbar({ printFormats });
   const closeButton = Button({
     cls: 'fixed top-right medium round icon-smaller light box-shadow z-index-ontop-high',
     icon: '#ic_close_24px'
