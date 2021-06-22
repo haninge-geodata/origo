@@ -1,12 +1,17 @@
 import Component from './component';
 import Icon from './icon';
 import { createStyle } from './dom/dom';
+import Viewer from '../viewer';
+import Origo from '../../origo';
 
 export default function Button(options = {}) {
   let {
     icon,
     state = 'initial',
-    text
+    text,
+    tooltipText,
+    tooltipOnStart = false,
+    title = ''
   } = options;
   const {
     cls = '',
@@ -17,14 +22,13 @@ export default function Button(options = {}) {
     click,
     style: styleSettings,
     textCls = '',
-    tooltipText,
-    title = '',
     tooltipPlacement = 'east',
     validStates = ['initial', 'active', 'disabled', 'inactive', 'loading', 'tracking'],
     ariaLabel = tooltipText || title || ''
   } = options;
 
   let buttonEl;
+  let that;
   const style = createStyle(styleSettings);
   const iconComponent = icon ? Icon({
     icon,
@@ -55,11 +59,27 @@ export default function Button(options = {}) {
   };
 
   const getTooltip = () => {
-    if (tooltipText) {
-      return `<span data-tooltip="${tooltipText}" data-placement="${tooltipPlacement}"></span>`;
+
+    let dataAttr;
+    const mapEl = document.querySelector('body');
+    const bookmarkEls = document.querySelectorAll('span[data-tooltip-on-start]');
+
+    if (tooltipOnStart) {
+      dataAttr = 'data-tooltip-on-start';
+    } else if (tooltipText && !tooltipOnStart) {
+      dataAttr = 'data-tooltip';
     }
-    return '';
+    mapEl.addEventListener('click', () => {
+      bookmarkEls.forEach(element => {
+        element.removeAttribute('data-tooltip-on-start');
+        // element.setAttribute('data-tooltip', tooltipText);
+      });
+      
+    });
+    return `<span ${dataAttr}="${tooltipText}" data-placement="${tooltipPlacement}"></span>`;
+
   };
+
 
   const getInnerHTML = () => {
     if (iconComponent && text) {
@@ -99,6 +119,7 @@ export default function Button(options = {}) {
     data,
     getState,
     onInit() {
+      that = this;
       this.on('change', onChange.bind(this));
       this.on('update', onUpdate.bind(this));
       if (click) {

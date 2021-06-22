@@ -8,7 +8,7 @@ const Bookmarks = function Bookmarks(options = {}) {
     duration = 300,
     closeIcon = '#ic_close_24px',
     bookmarksIcon = '#ic_bookmark_24px',
-    title = 'Bokmärken'
+    title = 'Badplatser'
   } = options;
   let {
     isActive = false
@@ -97,6 +97,7 @@ const Bookmarks = function Bookmarks(options = {}) {
         icon: bookmarksIcon,
         cls: `control icon-smaller medium round light${bookmarksButtonCls}`,
         tooltipText: title,
+        tooltipOnStart: true,
         tooltipPlacement: 'east',
         click() {
           toggle();
