@@ -28,7 +28,6 @@ export default function Button(options = {}) {
   } = options;
 
   let buttonEl;
-  let that;
   const style = createStyle(styleSettings);
   const iconComponent = icon ? Icon({
     icon,
@@ -68,27 +67,24 @@ export default function Button(options = {}) {
   };
 
   const getTooltip = () => {
-
     let dataAttr;
-    const mapEl = document.querySelector('body');
-    const bookmarkEls = document.querySelectorAll('span[data-tooltip-on-start]');
-
     if (tooltipOnStart) {
       dataAttr = 'data-tooltip-on-start';
     } else if (tooltipText && !tooltipOnStart) {
       dataAttr = 'data-tooltip';
+    } else if (!tooltipText) {
+      return '';
     }
-    mapEl.addEventListener('click', () => {
-      bookmarkEls.forEach(element => {
-        element.removeAttribute('data-tooltip-on-start');
-        // element.setAttribute('data-tooltip', tooltipText);
-      });
-      
-    });
     return `<span ${dataAttr}="${tooltipText}" data-placement="${tooltipPlacement}"></span>`;
-
   };
 
+  let setTooltip = () => {
+    const el = document.querySelectorAll('span[data-tooltip-on-start]')[0];
+    if (el) {
+      el.removeAttribute('data-tooltip-on-start');
+      el.setAttribute('data-tooltip', tooltipText);
+    }
+  };
 
   const getInnerHTML = () => {
     if (iconComponent && text) {
@@ -131,7 +127,6 @@ export default function Button(options = {}) {
     enable,
     disable,
     onInit() {
-      that = this;
       this.on('change', onChange.bind(this));
       this.on('update', onUpdate.bind(this));
       if (click) {
@@ -146,6 +141,7 @@ export default function Button(options = {}) {
       buttonEl.addEventListener('click', (e) => {
         this.dispatch('click');
         e.preventDefault();
+        setTooltip();
       });
       if (validStates.indexOf(state) > 0) {
         buttonEl.classList.add(state);
