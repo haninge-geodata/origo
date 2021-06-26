@@ -69,12 +69,19 @@ export default function Button(options = {}) {
     return `<span ${dataAttr}="${tooltipText}" data-placement="${tooltipPlacement}"></span>`;
   };
 
-  let setTooltip = () => {
-    const el = document.querySelectorAll('span[data-tooltip-on-start]')[0];
-    if (el) {
-      el.removeAttribute('data-tooltip-on-start');
-      el.setAttribute('data-tooltip', tooltipText);
-    }
+  const setTooltip = (that) => {
+    const elem = document.querySelectorAll('button');
+    elem.forEach(el => {
+      const spanEl = el.getElementsByTagName('span')[1];
+      const elId = el.getAttribute('id');
+      const buttonId = that.getId();
+      if (elId === buttonId) {
+        if (spanEl) {
+          spanEl.removeAttribute('data-tooltip-on-start');
+          spanEl.setAttribute('data-tooltip', tooltipText);
+        }
+      }
+    });
   };
 
   const getInnerHTML = () => {
@@ -129,7 +136,7 @@ export default function Button(options = {}) {
       buttonEl.addEventListener('click', (e) => {
         this.dispatch('click');
         e.preventDefault();
-        setTooltip();
+        setTooltip(this);
       });
       if (validStates.indexOf(state) > 0) {
         buttonEl.classList.add(state);
