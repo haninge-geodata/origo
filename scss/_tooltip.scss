@@ -120,12 +120,6 @@
   z-index: 100;
 }
 
-@media (hover: none) {
-  .o-tooltip span[data-tooltip-on-start] {
-    animation: 0.2s linear 3s forwards fadeout;
-  }
-}
-
 .o-tooltip span[data-tooltip-on-start][data-placement='east'] {
   border-color: transparent rgba(51, 51, 51, 0.85) transparent transparent;
   margin-top: 5px;
