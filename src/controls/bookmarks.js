@@ -9,7 +9,8 @@ const Bookmarks = function Bookmarks(options = {}) {
     closeIcon = '#ic_close_24px',
     bookmarksIcon = '#ic_bookmark_24px',
     title = 'Bokmärken',
-    tooltipOnStart = false
+    tooltipOnStart = false,
+    autoClose = false
   } = options;
   let {
     isActive = false
@@ -131,6 +132,12 @@ const Bookmarks = function Bookmarks(options = {}) {
           bookmarkTitle: item.name,
           click() {
             goToBookmark(item);
+            if (autoClose) {
+              const size = viewer.getSize();
+              if (size === 'm' || size === 's' || size === 'xs') {
+                toggle();
+              }
+            }
           }
         });
         items.push(bm);
