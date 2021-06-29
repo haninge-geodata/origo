@@ -1,17 +1,12 @@
 import Component from './component';
 import Icon from './icon';
 import { createStyle } from './dom/dom';
-import Viewer from '../viewer';
-import Origo from '../../origo';
 
 export default function Button(options = {}) {
   let {
     icon,
     state = 'initial',
-    text,
-    tooltipText,
-    tooltipOnStart = false,
-    title = ''
+    text
   } = options;
   const {
     cls = '',
@@ -24,6 +19,9 @@ export default function Button(options = {}) {
     textCls = '',
     tooltipPlacement = 'east',
     validStates = ['initial', 'active', 'disabled', 'inactive', 'loading', 'tracking'],
+    tooltipText,
+    tooltipOnStart = false,
+    title = '',
     ariaLabel = tooltipText || title || ''
   } = options;
 
@@ -69,21 +67,6 @@ export default function Button(options = {}) {
     return `<span ${dataAttr}="${tooltipText}" data-placement="${tooltipPlacement}"></span>`;
   };
 
-  const setTooltip = (that) => {
-    const elem = document.querySelectorAll('button');
-    elem.forEach(el => {
-      const spanEl = el.getElementsByTagName('span')[1];
-      const elId = el.getAttribute('id');
-      const buttonId = that.getId();
-      if (elId === buttonId) {
-        if (spanEl) {
-          spanEl.removeAttribute('data-tooltip-on-start');
-          spanEl.setAttribute('data-tooltip', tooltipText);
-        }
-      }
-    });
-  };
-
   const getInnerHTML = () => {
     if (iconComponent && text) {
       return `<span class="flex row align-center justify-space-between">
@@ -121,6 +104,14 @@ export default function Button(options = {}) {
   return Component({
     data,
     getState,
+    setTooltip() {
+      const el = document.getElementById(this.getId());
+      const spanEl = el && el.getElementsByTagName('span')[1];
+      if (spanEl) {
+        spanEl.removeAttribute('data-tooltip-on-start');
+        spanEl.setAttribute('data-tooltip', tooltipText);
+      }
+    },
     onInit() {
       this.on('change', onChange.bind(this));
       this.on('update', onUpdate.bind(this));
@@ -136,7 +127,7 @@ export default function Button(options = {}) {
       buttonEl.addEventListener('click', (e) => {
         this.dispatch('click');
         e.preventDefault();
-        setTooltip(this);
+        this.setTooltip();
       });
       if (validStates.indexOf(state) > 0) {
         buttonEl.classList.add(state);
