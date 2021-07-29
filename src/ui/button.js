@@ -26,6 +26,8 @@ export default function Button(options = {}) {
   } = options;
 
   let buttonEl;
+  let dataAttr;
+
   const style = createStyle(styleSettings);
   const iconComponent = icon ? Icon({
     icon,
@@ -56,15 +58,8 @@ export default function Button(options = {}) {
   };
 
   const getTooltip = () => {
-    let dataAttr;
-    if (tooltipOnStart) {
-      dataAttr = 'data-tooltip-on-start';
-    } else if (tooltipText && !tooltipOnStart) {
-      dataAttr = 'data-tooltip';
-    } else if (!tooltipText) {
-      return '';
-    }
-    return `<span ${dataAttr}="${tooltipText}" data-placement="${tooltipPlacement}"></span>`;
+    dataAttr = tooltipOnStart ? dataAttr = 'data-tooltip-on-start' : dataAttr = 'data-tooltip';
+    return tooltipText ? `<span ${dataAttr}="${tooltipText}" data-placement="${tooltipPlacement}"></span>` : '';
   };
 
   const getInnerHTML = () => {
@@ -105,11 +100,10 @@ export default function Button(options = {}) {
     data,
     getState,
     setTooltip() {
-      const el = document.getElementById(this.getId());
-      const spanEl = el && el.getElementsByTagName('span')[1];
-      if (spanEl) {
-        spanEl.removeAttribute('data-tooltip-on-start');
-        spanEl.setAttribute('data-tooltip', tooltipText);
+      const el = document.getElementById(this.getId()).getElementsByTagName('span')[1];
+      if (el) {
+        el.removeAttribute('data-tooltip-on-start');
+        el.setAttribute('data-tooltip', tooltipText);
       }
     },
     onInit() {
