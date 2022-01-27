@@ -75,7 +75,7 @@ const getContent = {
       if (attribute.title) {
         title = `<b>${attribute.title}</b>`;
       }
-      if (attribute.url) {
+      if (attribute.url && attributes[attribute.url]) {
         val = buildUrlContent(feature, attribute, attributes, map);
       }
     }
