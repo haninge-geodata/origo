@@ -23,6 +23,8 @@ const createForm = function createForm(obj) {
   let checked;
   let firstOption;
   const maxLengthText = maxLength ? `, max ${obj.maxLength} tecken` : '';
+  const getSessionId = sessionStorage.getItem('sessionId');
+
   switch (type) {
     case 'text':
       el = `<div class="validate ${cls}"><label>${label}</label><br><input type="text" name="text${maxLengthText}" id="${id}" value="${val}"${maxLength}${readonly}${required}></div>`;
@@ -140,6 +142,9 @@ const createForm = function createForm(obj) {
       break;
     case 'hidden':
       el = `<input type="hidden ${cls}" id="${id}" value="${val}">`;
+      break;
+    case 'sessionId':
+      el = `<input type="hidden" id="${id}" value="${getSessionId}">`;
       break;
     default:
       break;

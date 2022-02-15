@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid';
 import { Feature as olFeature, Collection as olCollection, Overlay as olOverlay } from 'ol';
 import * as olGeom from 'ol/geom';
 import { fromCircle, fromExtent } from 'ol/geom/Polygon';
@@ -27,6 +28,8 @@ import SelectedItem from './src/models/SelectedItem';
 import 'core-js/stable';
 import 'regenerator-runtime/runtime';
 import 'elm-pep';
+
+sessionStorage.setItem('sessionId', uuidv4());
 
 const Origo = function Origo(configPath, options = {}) {
   let viewer;
