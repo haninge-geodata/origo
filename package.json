@@ -38,23 +38,15 @@
     "dom-to-image-more": "2.8.0",
     "downloadjs": "^1.4.7",
     "elm-pep": "^1.0.6",
-<<<<<<< HEAD
-    "html2canvas": "^1.0.0-rc.7",
-    "jspdf": "^2.3.1",
-    "ol": "^6.9.0",
-    "ol-mapbox-style": "6.3.0",
-    "proj4": "^2.6.3",
     "regenerator-runtime": "^0.13.7",
     "uuid": "^8.3.2",
-    "whatwg-fetch": "^3.5.0"
-=======
+    "whatwg-fetch": "^3.5.0",
     "html2canvas": "^1.4.0",
     "ol-mapbox-style": "6.8.3",
     "jspdf": "^2.5.0",
     "ol": "^6.12.0",
     "pepjs": "^0.5.3",
     "proj4": "^2.7.5"
->>>>>>> origin/master
   },
   "devDependencies": {
     "copy-webpack-plugin": "^9.1.0",
