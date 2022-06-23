@@ -10,13 +10,12 @@ wfs.request = function request(layer) {
   sourceOptions.filter = layer.get('filter');
   sourceOptions.projectionCode = viewer.getProjectionCode();
   sourceOptions.extent = layer.get('extent');
-  sourceOptions.projectionCode = viewer.getProjectionCode();
 
   const req = createRequest(sourceOptions);
   return req;
 
   function createRequest(options) {
-    console.log('createRequest')
+    console.log('createRequest');
     const format = new GeoJSONFormat({
       geometryName: options.geometryName
     });
@@ -24,9 +23,13 @@ wfs.request = function request(layer) {
     const serverUrl = options.url;
     let queryFilter;
 
-    // If cql filter then bbox must be used in the filter.
     if (options.filter) {
+      if (options.filterType === 'qgis') {
+        queryFilter = `&BBOX=${options.extent.join(',')},${options.projectionCode}&EXP_FILTER=${options.filter}`;
+      } else {
+    // If cql filter then bbox must be used in the filter.
       queryFilter = `&CQL_FILTER=${options.filter} AND BBOX(${options.geometryName},${options.extent.join(',')},'${options.projectionCode}')`;
+      }
     } else {
       queryFilter = `&BBOX=${options.extent.join(',')},${options.projectionCode}`;
     }

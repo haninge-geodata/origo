@@ -63,49 +63,97 @@ class WfsSource extends VectorSource {
   }
 
   /**
+   * Generate a wfs query filter according to the wfs layer source's `filterType`. Combines
+   * the custom filter parameter with any layer filters already present.
+   * @param {string} filterType The filter type used by the layer source (`cql`|`qgis`)
+   * @param {string} customFilter custom filter to combine with preconfigured layer filters
+   * @param {any} extent ignored when customFilter is supplied
+   */
+  createQueryFilter(filterType, customFilter, extent) {
+    let queryFilter = '';
+    let layerFilter = '';
+    if (this.getOptions().filter) {
+      layerFilter = replacer.replace(this.getOptions().filter, window);
+    }
+
+    // Transform the extent if necessary
+    let requestExtent = extent;
+    if (extent && this.getOptions().dataProjection !== this.getOptions().projectionCode) {
+      requestExtent = transformExtent(extent, this.getOptions().projectionCode, this.getOptions().dataProjection);
+    }
+
+    // When using BBOX mode and no filters, just use the BBOX WFS parameter
+    if (extent && this.getOptions().strategy !== 'all' && !this.getOptions().isTable && !customFilter && !layerFilter) {
+      queryFilter = `&BBOX=${requestExtent.join(',')},${this.getOptions().dataProjection}`;
+    } else { // Otherwise, integrate provided layer filters, `customFilter` and extent into a single query filter
+      switch (filterType) {
+        case 'cql': {
+          // Set up the filter as a combination of the layer filter and the temporary filter parameter
+          let cqlfilter = layerFilter;
+          if (layerFilter && customFilter) {
+            cqlfilter += ' AND ';
+          }
+          if (customFilter) {
+            cqlfilter += `${replacer.replace(customFilter, window)}`;
+          }
+
+          // If using extent, no `customFilter`, and the layer is not a geometryless table, integrate it into the query filter
+          if (extent && this.getOptions().strategy !== 'all' && !customFilter && !this.getOptions().isTable) {
+            if (cqlfilter) {
+              cqlfilter += ' AND ';
+            }
+            cqlfilter += `BBOX(${this.getOptions().geometryName},${requestExtent.join(',')},'${this.getOptions().dataProjection}')`;
+          }
+
+          // Create the complete CQL query string
+          if (cqlfilter) {
+            queryFilter = `&CQL_FILTER=${cqlfilter}`;
+          }
+          break;
+        }
+        case 'qgis': {
+          // Set up the filter as a combination of the layer filter and the temporary filter parameter
+          let qgisFilter = layerFilter;
+          if (layerFilter && customFilter) {
+            qgisFilter += ' AND ';
+          }
+          if (customFilter) {
+            qgisFilter += `${replacer.replace(customFilter, window)}`;
+          }
+          // Create the complete QGIS EXP_FILTER query string
+          if (qgisFilter) {
+            qgisFilter = `&EXP_FILTER=${qgisFilter}`;
+          }
+
+          // If using extent, no `customFilter`, and the layer is not a geometryless table, add a BBOX WFS parameter
+          // Because of QGIS Server's lack of support for any SRS other than EPSG:4326 in GeoJSON, layers must be requested
+          // in EPSG:4326. EXP_FILTER comparisons still expects the SRS of the data to be used, which Origo then doesn't know.
+          if (extent && this.getOptions().strategy !== 'all' && !customFilter && !this.getOptions().isTable) {
+            queryFilter = `&BBOX=${requestExtent.join(',')},${this.getOptions().dataProjection}${qgisFilter}`;
+          } else {
+            queryFilter = qgisFilter;
+          }
+          break;
+        }
+        default: break;
+      }
+    }
+    return queryFilter;
+  }
+
+  /**
    * Helper to reuse code. Consider it to be private to this class
    * @param {any} extent
-   * @param {any} cql if provided, extent is ignored
+   * @param {any} filter if provided, extent is ignored
    */
-  async _loaderHelper(extent, cql) {
+  async _loaderHelper(extent, filter) {
     const serverUrl = this._options.url;
-
-    // Set up the cql filter as a combination of the layer filter and the temporary cql parameter
-    let cqlfilter = '';
-    if (this._options.filter) {
-      cqlfilter = replacer.replace(this._options.filter, window);
-      if (cql) {
-        cqlfilter += ' AND ';
-      }
-    }
-    if (cql) {
-      cqlfilter += `${replacer.replace(cql, window)}`;
-    }
-
-    // Create the complete CQL query string
-    let queryFilter = '';
-    if (this._options.strategy === 'all' || cql || this._options.isTable) {
-      queryFilter = cqlfilter ? `&CQL_FILTER=${cqlfilter}` : '';
-    } else {
-      // Extent should be used. Depending if there also is a filter, the queryfilter looks different
-      let requestExtent;
-      if (this._options.dataProjection !== this._options.projectionCode) {
-        requestExtent = transformExtent(extent, this._options.projectionCode, this._options.dataProjection);
-      } else {
-        requestExtent = extent;
-      }
-      if (cqlfilter) {
-        queryFilter = `&CQL_FILTER=${cqlfilter} AND BBOX(${this._options.geometryName},${requestExtent.join(',')},'${this._options.dataProjection}')`;
-      } else {
-        queryFilter = `&BBOX=${requestExtent.join(',')},${this._options.dataProjection}`;
-      }
-    }
 
     // Create the complete URL
     let url = [`${serverUrl}${serverUrl.indexOf('?') < 0 ? '?' : '&'}service=WFS`,
       `&version=1.1.0&request=GetFeature&typeName=${this._options.featureType}&outputFormat=application/json`,
       `&srsname=${this._options.dataProjection}`].join('');
-    url += queryFilter;
+    url += this.createQueryFilter(this._options.filterType, filter, extent);
     url = encodeURI(url);
 
     // Actually fetch some features
@@ -125,12 +173,12 @@ class WfsSource extends VectorSource {
   }
 
   /**
-   * Makes a call to the server with the provided cql filter and adds all matching records to the layer.
+   * Makes a call to the server with the provided query filter and adds all matching records to the layer.
    * If the layer has a filter it is honoured.
-   * @param {any} cql
+   * @param {any} filter
    */
-  async ensureLoaded(cql) {
-    await this._loaderHelper(null, cql);
+  async ensureLoaded(filter) {
+    await this._loaderHelper(null, filter);
   }
 }
 
