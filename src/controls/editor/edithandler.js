@@ -494,6 +494,17 @@ function setInteractions(drawType) {
   select = new Select({
     layers: [editLayer]
   });
+  select.on('select', (evt) => {
+    evt.selected.forEach(async (selectedFeature) => {
+      const layer = select.getLayer(selectedFeature);
+      if (layer.get('refreshFeatureOnSelect')) {
+        // Replace the geometry and attributes of the feature.
+        const existingFeature = layer.getSource().getFeatureById(selectedFeature.getId());
+        const freshFeatures = await layer.getSource().fetchFeatures([selectedFeature.getId()]);
+        existingFeature.setProperties(freshFeatures[0].getProperties());
+      }
+    });
+  });
   if (allowEditGeometry) {
     modify = new Modify({
       features: select.getFeatures()
