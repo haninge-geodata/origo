@@ -141,6 +141,39 @@ class WfsSource extends VectorSource {
   }
 
   /**
+   * Generate a featureId filter to filter specific feature(s). Will be combined
+   * with any layer filters present.
+   * @param {string} filterType The filter type used by the layer source (`cql`|`qgis`)
+   * @param {string} featureIds feature id array to filter by
+   */
+  createFeatureIdFilter(filterType, featureIds) {
+    const featureFilter = `&featureId=${featureIds.join(',')}`;
+    return this.createQueryFilter(filterType, featureFilter);
+  }
+
+  /**
+   * Fetches specific feature(s) from the source. Respects layer filters.
+   * @param {string} featureIds array of ids of the features to be fetched
+   * @param {string} idField the primary key field with which to match the featureId
+   * @returns {Object[]} returns an array of OL Features fresh from the source
+   */
+  async fetchFeatures(featureIds) {
+    // Create the complete URL
+    const opts = this.getOptions();
+    let url = [`${opts.url}${opts.url.indexOf('?') < 0 ? '?' : '&'}service=WFS`,
+      `&version=1.1.0&request=GetFeature&typeName=${opts.featureType}&outputFormat=application/json`,
+      `&srsname=${opts.dataProjection}`].join('');
+    url += this.createFeatureIdFilter(opts.filterType, featureIds);
+    url = encodeURI(url);
+
+    // Actually fetch some features
+    const JsonFeatures = await fetch(url).then(response => response.json({
+      cache: false
+    }));
+    return super.getFormat().readFeatures(JsonFeatures);
+  }
+
+  /**
    * Helper to reuse code. Consider it to be private to this class
    * @param {any} extent
    * @param {any} filter if provided, extent is ignored
