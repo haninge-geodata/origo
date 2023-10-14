@@ -1,51 +1,33 @@
 #o-sidebar.o-sidebar-show {
-  transform: translateX(-270px);
-  transform: translateX(-270px);
-  transform: translateX(-270px);
+  transform: translateY(-270px);
 }
 
 #o-sidebar {
-  border-radius: 1px; /*workaround for box-shadow bug in ios*/
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.45);
-  box-shadow: 0 0 5px rgba(0, 0, 0, 0.45);
-  height: 100%;
   position: absolute;
-  right: -270px;
-  top: 0;
-  transform: translateX(0);
-  transform: translateX(0);
-  transform: translateX(0);
+  bottom: -270px;
+  transform: translateY(0);
   transition: .1s ease all;
-  transition: .1s ease all;
-  transition: .1s ease all;
-  width: 270px;
-  z-index: 110;
+  width: 100%;
+  z-index: 24;
 }
 
 .o-sidebar {
   height: 100%;
+  opacity: 0.9;
+}
+
+@media screen and (min-width: 768px) {
+  .o-sidebar {
+    margin-bottom: 2em;
+  }
 }
 
 .o-sidebar .o-card-content {
-  height: calc(100% - 46px) !important;
-
   .owl-stage {
-    margin-bottom: 10px;
+    margin-bottom: 0px;
   }
 }
 
 #o-sidebar .owl-carousel .owl-wrapper-outer {
   overflow-y: auto;
-}
-@media screen and (max-width: 320px) {
-  #o-sidebar {
-    right: -320px;
-    width: 100%;
-  }
-
-  #o-sidebar.o-sidebar-show {
-    transform: translateX(-320px);
-    transform: translateX(-320px);
-    transform: translateX(-320px);
-  }
 }
