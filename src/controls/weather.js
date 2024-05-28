@@ -23,10 +23,10 @@ const Weather = function Weather(options = {}) {
     const view = viewer.getMap().getView();
     const getCenterXCoord = view.getCenter().map(coord => Math.round(coord))[0];
     const getCenterYCoord = view.getCenter().map(coord => Math.round(coord))[1];
-    const centerCoords = proj4('EPSG:3857', 'EPSG:4326', [getCenterXCoord, getCenterYCoord]);
+    const centerCoords = proj4(`${viewer.getProjection().getCode()}`, 'EPSG:4326', [getCenterXCoord, getCenterYCoord]);
     const response = await fetch(`https://opendata-download-metfcst.smhi.se/api/category/pmp3g/version/2/geotype/point/lon/${centerCoords[0].toFixed(3)}/lat/${centerCoords[1].toFixed(3)}/data.json`);
     const tenDaysForecast = await response.json();
-    return tenDaysForecast.timeSeries[2].parameters;
+    return tenDaysForecast.timeSeries[3].parameters;
   };
 
   return Component({
