@@ -90,11 +90,17 @@ const Favourites = function Favourites(options = {}) {
     updateButtonClick,
     deleteButtonClick
   } = {}) {
+    const iconSelector = () => {
+      if (getPageId() === id) {
+        return '#ic_heart_24px';
+      }
+      return '#ic_heart_outline_24px';
+    };
     const titleCmp = El({ cls: 'padding-left padding-right', style: 'align-self: center', innerHTML: favouriteTitle });
     const favouriteButton = Button({
       cls: 'icon-small compact',
       click: openFavouriteButtonClick,
-      icon: '#ic_play_arrow_24px'
+      icon: iconSelector()
     });
     const updateButton = Button({
       cls: 'icon-small compact',
