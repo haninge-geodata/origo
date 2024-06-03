@@ -98,17 +98,17 @@ const Favourites = function Favourites(options = {}) {
     };
     const titleCmp = El({ cls: 'padding-left padding-right', style: 'align-self: center', innerHTML: favouriteTitle });
     const favouriteButton = Button({
-      cls: 'icon-small compact',
+      cls: 'favourites-hover icon-small compact',
       click: openFavouriteButtonClick,
       icon: iconSelector()
     });
     const updateButton = Button({
-      cls: 'icon-small compact',
+      cls: 'favourites-hover icon-small compact',
       click: updateButtonClick,
       icon: '#ic_content-save-outline_24px'
     });
     const deleteButton = Button({
-      cls: 'icon-small compact',
+      cls: 'favourites-hover icon-small compact',
       click: deleteButtonClick,
       icon: '#ic_trash_can_outline_24px'
     });
@@ -126,14 +126,14 @@ const Favourites = function Favourites(options = {}) {
       },
       render() {
         return `<li id="${id}" class="flex row text-small padding-x padding-y-smaller">
-                  <span class="flex row pointer hover">
+                  <span class="flex row pointer">
                     ${favouriteButton.render()}
                     ${titleCmp.render()}
                   </span>
-                  <span class="flex row margin-left-auto pointer hover">
+                  <span class="flex row margin-left-auto pointer">
                     ${updateButton.render()}
                   </span>
-                  <span class="flex row margin-left pointer hover">
+                  <span class="flex row margin-left pointer">
                     ${deleteButton.render()}
                   </span>
                 </li>`;
@@ -325,7 +325,7 @@ const Favourites = function Favourites(options = {}) {
       });
 
       createFavouriteButton = Button({
-        cls: 'icon-small compact no-grow hover',
+        cls: 'favourites-hover icon-small compact no-grow',
         click: submit,
         icon: '#ic_heart-plus-outline_24px',
         style: 'vertical-align: middle; margin-left: 10px;'
