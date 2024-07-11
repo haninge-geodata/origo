@@ -1,3 +1,4 @@
+import OLCesium from 'olcs/OLCesium';
 import { Feature as olFeature, Collection as olCollection, Overlay as olOverlay } from 'ol';
 import * as olGeom from 'ol/geom';
 import { fromCircle, fromExtent } from 'ol/geom/Polygon';
@@ -29,6 +30,9 @@ import 'drag-drop-touch';
 import permalink from './src/permalink/permalink';
 import * as Loader from './src/loading';
 import Spinner from './src/utils/spinner';
+import layerType from './src/layer/layertype';
+
+window.OLCesium = OLCesium;
 
 const Origo = function Origo(configPath, options = {}) {
   /** Reference to the returned Component */
@@ -151,6 +155,7 @@ Origo.extensions = origoExtensions;
 Origo.ui = ui;
 Origo.Style = Style;
 Origo.featurelayer = featurelayer;
+Origo.layerType = layerType;
 Origo.getFeatureInfo = getFeatureInfo;
 Origo.getFeature = getFeature;
 Origo.ol = [];
