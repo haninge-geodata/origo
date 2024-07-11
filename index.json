@@ -172,20 +172,6 @@
   ],
   "layers": [
     {
-      "name": "origo-cities",
-      "title": "Origokommuner",
-      "group": "root",
-      "source": "data/origo-cities-3857.geojson",
-      "style": "origo-logo",
-      "type": "GEOJSON",
-      "attributes": [
-        {
-          "name": "name"
-        }
-      ],
-      "visible": true
-    },
-    {
       "name": "OSMSTUFF",
       "title": "OSMSTUFF_TITLE",
       "type": "THREEDTILE",
@@ -195,7 +181,7 @@
       "maximumScreenSpaceError": 16,
       "showOutline": true,
       "outlineColor": "AQUA",
-      "visible": false,
+      "visible": true,
       "filter": "${feature['elementId']} !== 251329024 && ${feature['elementId']} !== 425027205 && ${feature['elementId']} !== 425002757",
       "style": [
         [
@@ -228,6 +214,20 @@
         ],
         [true, "color('#ef7f77', 1)"]
       ]
+    },
+    {
+      "name": "origo-cities",
+      "title": "Origokommuner",
+      "group": "root",
+      "source": "data/origo-cities-3857.geojson",
+      "style": "origo-logo",
+      "type": "GEOJSON",
+      "attributes": [
+        {
+          "name": "name"
+        }
+      ],
+      "visible": true
     },
     {
       "name": "fastighetsgranser_orto_3857",
