@@ -57,32 +57,17 @@
       "name": "measure"
     },
     {
-      "name": "globe",
+      "name": "search",
       "options": {
-        "showGlobe": true,
-        "globeOnStart": true,
-        "settings": {
-          "depthTestAgainstTerrain": true,
-          "enableAtmosphere": true,
-          "enableGroundAtmosphere": true,
-          "enableFog": true,
-          "enableLighting": true,
-          "enableShadows": true,
-          "skyBox": {
-            "url": "https://karta.haninge.se/visning/origo-globe/dist/thirdparty/cesiumassets/Assets/Textures/SkyBox/",
-            "images": {
-              "pX": "tycho2t3_80_px.jpg",
-              "nX": "tycho2t3_80_mx.jpg",
-              "pY": "tycho2t3_80_py.jpg",
-              "nY": "tycho2t3_80_my.jpg",
-              "pZ": "tycho2t3_80_pz.jpg",
-              "nZ": "tycho2t3_80_mz.jpg"
-            }
-          }
-        },
-        "cesiumIontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhY2E0YmM1Mi1kMzY1LTQ5OWUtOWUxNS05MzJkY2ExN2FiMTEiLCJpZCI6NDAxMDgsImlhdCI6MTY1MTc1NDg4MX0.rpYAxY3twCcx3VW-UPb2LjOVKjHxIetB_We6R2oAOB4",
-        "cesiumTerrainProvider": "",
-        "cesiumIonassetIdTerrain": ""
+        "url": "https://karta.haninge.se/origoserver/search",
+        "searchAttribute": "NAMN",
+        "titleAttribute": "TITLE",
+        "contentAttribute": "NAMN",
+        "geometryAttribute": "GEOM",
+        "groupSuggestions": true,
+        "hintText": "Sök...",
+        "maxZoomLevel": 12,
+        "minLength": 2
       }
     }
   ],
@@ -156,6 +141,9 @@
   "source": {
     "geowebcache": {
       "url": "https://geodata.haninge.se/geowebcache/service/wmts"
+    },
+    "qgis_karta": {
+      "url": "https://karta.haninge.se/services/karta/ows?WITH_GEOMETRY=true&FI_POINT_TOLERANCE=5&FI_LINE_TOLERANCE=5"
     }
   },
   "groups": [
@@ -172,16 +160,17 @@
   ],
   "layers": [
     {
-      "name": "OSMSTUFF",
-      "title": "OSMSTUFF_TITLE",
+      "name": "osm_buildings",
+      "title": "Open street map byggnader",
       "type": "THREEDTILE",
+      "abstract": "Byggnader från OSM",
       "url": "OSM-Buildings",
       "group": "root",
       "queryable": true,
       "maximumScreenSpaceError": 16,
       "showOutline": true,
-      "outlineColor": "AQUA",
-      "visible": true,
+      "outlineColor": "SNOW",
+      "visible": false,
       "filter": "${feature['elementId']} !== 251329024 && ${feature['elementId']} !== 425027205 && ${feature['elementId']} !== 425002757",
       "style": [
         [
@@ -216,11 +205,34 @@
       ]
     },
     {
+      "name": "aby_entre",
+      "title": "Åby entre",
+      "type": "THREEDTILE",
+      "abstract": "Åby entre - illustrationsplan",
+      "url": "http://localhost:9966/data/aby_entre_byggnader/tileset.json",
+      "group": "root",
+      "queryable": true,
+      "maximumScreenSpaceError": 16,
+      "visible": false,
+      "style": [ [true, "color('#ef7f77', 1)"]]
+    },
+    {
+      "name": "leveransomrade_ett",
+      "title": "Leveransområde 1",
+      "type": "THREEDTILE",
+      "abstract": "Leveransområde ett från bilderna tagna våren 2022",
+      "url": "http://localhost:9966/data/leveransomrade_ett/tileset.json",
+      "group": "root",
+      "maximumScreenSpaceError": 2048,
+      "visible": false,
+      "style": {"color":{"conditions":[]}}
+    },
+    {
       "name": "origo-cities",
       "title": "Origokommuner",
       "group": "root",
       "source": "data/origo-cities-3857.geojson",
-      "style": "origo-logo",
+      "style": "origo-logo-img",
       "type": "GEOJSON",
       "attributes": [
         {
@@ -230,16 +242,25 @@
       "visible": true
     },
     {
-      "name": "fastighetsgranser_orto_3857",
-      "source": "geowebcache",
-      "title": "Karta med fastighetsgränser",
+      "name": "markinnehav",
+      "source": "qgis_karta",
+      "title": "Haninge kommuns markinnehav",
+      "abstract": "Visar markyta som ägs av Haninge Kommun, inte inkluderat kommunala bolag. Inkluderar inte heller byggnader som kommunen äger på ofri grund.<br>",
       "group": "root",
-      "queryable": false,
-      "style": "karta_fastigheter",
-      "type": "WMTS",
-      "visible": true,
-      "attribution": "&copy Lantmäteriet Geodatasamverkan",
-      "format": "image/png"
+      "queryable": true,
+      "style": "markinnehav",
+      "type": "WMS",
+      "geometry": "geom",
+      "renderMode": "image",
+      "visible": false,
+      "attribution": "&copy Lantmäteriet",
+      "format": "image/png",
+      "attributes": [
+        {
+          "name": "Ägare",
+          "title": "Ägare: "
+        }
+      ]
     },
     {
       "name": "topowebbkartan_nedtonad_3857",
@@ -251,7 +272,8 @@
       "type": "WMTS",
       "visible": false,
       "attribution": "&copy Lantmäteriet Geodatasamverkan",
-      "format": "image/png"
+      "format": "image/png",
+      "isSwiperLayer": true
     },
     {
       "name": "topowebbkartan_3857",
@@ -289,7 +311,16 @@
     }
   ],
   "styles": {
-    
+    "origo-logo-img": [
+      [
+        {
+          "label": "Origo",
+          "icon": {
+            "src": "css/png/origo_logo.png"
+          }
+        }
+      ]
+    ],
     "mask": [
       [
         {
