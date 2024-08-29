@@ -1,9 +1,9 @@
-const origo = Origo('../../index.json');
-origo.on('load', function (viewer) {
+const origo = Origo('index.json');
+origo.on('load', (viewer) => {
   const globe = Globe({
     showGlobe: true,
     globeOnStart: false,
-    deactivateControls: ["measure", "search"],
+    deactivateControls: ['measure', 'search'],
     settings: {
       depthTestAgainstTerrain: true,
       enableAtmosphere: true,
@@ -19,18 +19,18 @@ origo.on('load', function (viewer) {
         softShadows: false
       },
       skyBox: {
-        url: "http://localhost:9966/plugins/globe/cesiumassets/Assets/Textures/SkyBox/",
+        url: 'http://localhost:9966/plugins/globe/cesiumassets/Assets/Textures/SkyBox/',
         images: {
-          pX: "tycho2t3_80_px.jpg",
-          nX: "tycho2t3_80_mx.jpg",
-          pY: "tycho2t3_80_py.jpg",
-          nY: "tycho2t3_80_my.jpg",
-          pZ: "tycho2t3_80_pz.jpg",
-          nZ: "tycho2t3_80_mz.jpg"
+          pX: 'tycho2t3_80_px.jpg',
+          nX: 'tycho2t3_80_mx.jpg',
+          pY: 'tycho2t3_80_py.jpg',
+          nY: 'tycho2t3_80_my.jpg',
+          pZ: 'tycho2t3_80_pz.jpg',
+          nZ: 'tycho2t3_80_mz.jpg'
         }
       }
     },
-    "cesiumIontoken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhYjNjMzFlNy1iNmFmLTRiYTMtOWIyYi0yZTY4ZDkxODc4MTQiLCJpZCI6NDAxMDgsImlhdCI6MTY1MTgyMzEyM30.jwZaHaF3d4LtXlSHhSkqPs43Erx1o2D1rIgJgSu6EX8",
+    cesiumIontoken: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiJhYjNjMzFlNy1iNmFmLTRiYTMtOWIyYi0yZTY4ZDkxODc4MTQiLCJpZCI6NDAxMDgsImlhdCI6MTY1MTgyMzEyM30.jwZaHaF3d4LtXlSHhSkqPs43Erx1o2D1rIgJgSu6EX8',
     // "gltf": [
     //   {
     //     "url": "http://localhost:9966/data/origo_globe.gltf",
@@ -43,8 +43,8 @@ origo.on('load', function (viewer) {
     //     }
     //   }
     // ],
-    "cesiumTerrainProvider": "",
-    "cesiumIonassetIdTerrain": 1
+    cesiumTerrainProvider: '',
+    cesiumIonassetIdTerrain: 1
   });
   viewer.addComponent(globe);
 });
