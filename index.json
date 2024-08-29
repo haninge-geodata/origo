@@ -172,37 +172,44 @@
       "outlineColor": "SNOW",
       "visible": false,
       "filter": "${feature['elementId']} !== 251329024 && ${feature['elementId']} !== 425027205 && ${feature['elementId']} !== 425002757",
-      "style": [
-        [
-          "${feature['building']} === 'civic' || ${feature['building']} === 'construction' || ${feature['building']} === 'church'",
-          "color('#ed6258', 1)"
-        ],
-        [
-          "${feature['building']} === 'commercial' || ${feature['building']} === 'retail' || ${feature['building']} === 'office'",
-          "color('#af8b74', 1)"
-        ],
-        [
-          "${feature['building']} === 'apartments' || ${feature['building']} === 'residential' || ${feature['building']} === 'house' || ${feature['building']} === 'yes' || ${feature['building']} === 'roof'",
-          "color('#c98754', 1)"
-        ],
-        [
-          "${feature['building']} === 'warehouse' || ${feature['building']} === 'manufacture' || ${feature['building']} === 'industrial'",
-          "color('#919494', 1)"
-        ],
-        [
-          "${feature['building']} === 'school' || ${feature['amenity']} === 'university' || ${feature['building']} === 'kindergarten'",
-          "color('#ef7f77', 1)"
-        ],
-        [
-          "${feature['building']} === 'parking' || ${feature['amenity']} === 'parking' || ${feature['building']} === 'garages' || ${feature['building']} === 'garage'",
-          "color('#af8b74', 1)"
-        ],
-        [
-          "${feature['building']} === 'farm_auxiliary' || ${feature['building']} === 'detached'",
-          "color('#a69774', 1)"
-        ],
-        [true, "color('#ef7f77', 1)"]
-      ]
+      "style": {
+        "color": {
+          "conditions": [
+            [
+              "${feature['building']} === 'civic' || ${feature['building']} === 'construction' || ${feature['building']} === 'church'",
+              "color('#ed6258', 1)"
+            ],
+            [
+              "${feature['building']} === 'commercial' || ${feature['building']} === 'retail' || ${feature['building']} === 'office'",
+              "color('#af8b74', 1)"
+            ],
+            [
+              "${feature['building']} === 'apartments' || ${feature['building']} === 'residential' || ${feature['building']} === 'house' || ${feature['building']} === 'yes' || ${feature['building']} === 'roof'",
+              "color('#c98754', 1)"
+            ],
+            [
+              "${feature['building']} === 'warehouse' || ${feature['building']} === 'manufacture' || ${feature['building']} === 'industrial'",
+              "color('#919494', 1)"
+            ],
+            [
+              "${feature['building']} === 'school' || ${feature['amenity']} === 'university' || ${feature['building']} === 'kindergarten'",
+              "color('#ef7f77', 1)"
+            ],
+            [
+              "${feature['building']} === 'parking' || ${feature['amenity']} === 'parking' || ${feature['building']} === 'garages' || ${feature['building']} === 'garage'",
+              "color('#af8b74', 1)"
+            ],
+            [
+              "${feature['building']} === 'farm_auxiliary' || ${feature['building']} === 'detached'",
+              "color('#a69774', 1)"
+            ],
+            [
+              true,
+              "color('#ef7f77', 1)"
+            ]
+          ]
+        }
+      }
     },
     {
       "name": "aby_entre",
@@ -213,20 +220,19 @@
       "group": "root",
       "queryable": true,
       "maximumScreenSpaceError": 16,
-      "visible": false,
-      "style": [ [true, "color('#ef7f77', 1)"]]
+      "visible": false
     },
-    {
-      "name": "leveransomrade_ett",
-      "title": "Leveransområde 1",
-      "type": "THREEDTILE",
-      "abstract": "Leveransområde ett från bilderna tagna våren 2022",
-      "url": "http://localhost:9966/data/leveransomrade_ett/tileset.json",
-      "group": "root",
-      "maximumScreenSpaceError": 2048,
-      "visible": false,
-      "style": {"color":{"conditions":[]}}
-    },
+    // {
+    //   "name": "leveransomrade_ett",
+    //   "title": "Leveransområde 1",
+    //   "type": "THREEDTILE",
+    //   "abstract": "Leveransområde ett från bilderna tagna våren 2022",
+    //   "url": "http://localhost:9966/data/leveransomrade_ett/tileset.json",
+    //   "group": "root",
+    //   "maximumScreenSpaceError": 2048,
+    //   "visible": false,
+    //   "style": {"color":{"conditions":[]}}
+    // },
     {
       "name": "origo-cities",
       "title": "Origokommuner",
