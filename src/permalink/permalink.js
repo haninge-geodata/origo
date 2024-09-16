@@ -110,7 +110,7 @@ export default (() => ({
       const throwMessage = 'No map id';
       throw throwMessage;
     } else {
-      return fetch(`https://gis.haninge.se/admin-api/api/share-map/${id}`).then(response => response.json())
+      return fetch(`https://gis.haninge.se/admin-api/favourites/${id}`).then(response => response.json())
         .then((data) => {
           const mapObj = {};
           Object.keys(data.data).forEach(key => {
