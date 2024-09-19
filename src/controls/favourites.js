@@ -66,8 +66,10 @@ const Favourites = function Favourites(options = {}) {
   };
 
   const openFavourite = function openFavourite(id, pageTitle) {
-    const openFav = window.open(`/origo-test/?id=${id}`, '_blank');
-    openFav.document.title = pageTitle;
+    const openFav = window.open(`/origo-test/?id=${id}${window.location.hash}`, '_blank');
+    setTimeout(() => {
+      openFav.document.title = pageTitle;
+    }, 0);
   };
 
   const setPageTitle = async () => {
@@ -299,7 +301,7 @@ const Favourites = function Favourites(options = {}) {
                   requestsHandler.delete(id);
                   document.getElementById(id).remove();
                   if (id === getPageId()) {
-                    window.open('https://gis.haninge.se/origo-test', '_self');
+                    window.open(`/origo-test/${window.location.hash}`, '_self');
                   }
                 }
               },
@@ -413,7 +415,7 @@ const Favourites = function Favourites(options = {}) {
                 requestsHandler.delete(id);
                 document.getElementById(id).remove();
                 if (id === getPageId()) {
-                  window.open('https://gis.haninge.se/origo-test', '_self');
+                  window.open(`/origo-test/${window.location.hash}`, '_self');
                 }
               }
             },
