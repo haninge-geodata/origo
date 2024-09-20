@@ -62,7 +62,7 @@ const Favourites = function Favourites(options = {}) {
     if (searchParams.has('id')) {
       return pageId;
     }
-    return console.warn('Could not find page id');
+    return false;
   };
 
   const openFavourite = function openFavourite(id, pageTitle) {
