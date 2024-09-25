@@ -239,7 +239,7 @@ const Favourites = function Favourites(options = {}) {
 
       favouritesButton = Button({
         icon: favouritesIcon,
-        cls: `control icon-smaller medium round light${favouritesButtonCls}`,
+        cls: `o-favourites control icon-smaller medium round light${favouritesButtonCls}`,
         tooltipText: title,
         tooltipPlacement: 'east',
         click() {
