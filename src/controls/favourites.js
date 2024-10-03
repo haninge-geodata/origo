@@ -62,12 +62,14 @@ const Favourites = function Favourites(options = {}) {
     if (searchParams.has('id')) {
       return pageId;
     }
-    return console.warn('Could not find page id');
+    return undefined;
   };
 
   const openFavourite = function openFavourite(id, pageTitle) {
-    const openFav = window.open(`/origo-test/?id=${id}`, '_blank');
-    openFav.document.title = pageTitle;
+    const openFav = window.open(`/origo-test/?id=${id}${window.location.hash}`, '_blank');
+    setTimeout(() => {
+      openFav.document.title = pageTitle;
+    }, 0);
   };
 
   const setPageTitle = async () => {
@@ -90,19 +92,25 @@ const Favourites = function Favourites(options = {}) {
     updateButtonClick,
     deleteButtonClick
   } = {}) {
+    const iconSelector = () => {
+      if (getPageId() === id) {
+        return '#ic_heart_24px';
+      }
+      return '#ic_heart_outline_24px';
+    };
     const titleCmp = El({ cls: 'padding-left padding-right', style: 'align-self: center', innerHTML: favouriteTitle });
     const favouriteButton = Button({
-      cls: 'icon-small compact',
+      cls: 'favourites-hover icon-small compact',
       click: openFavouriteButtonClick,
-      icon: '#ic_play_arrow_24px'
+      icon: iconSelector()
     });
     const updateButton = Button({
-      cls: 'icon-small compact',
+      cls: 'favourites-hover icon-small compact',
       click: updateButtonClick,
       icon: '#ic_content-save-outline_24px'
     });
     const deleteButton = Button({
-      cls: 'icon-small compact',
+      cls: 'favourites-hover icon-small compact',
       click: deleteButtonClick,
       icon: '#ic_trash_can_outline_24px'
     });
@@ -120,14 +128,14 @@ const Favourites = function Favourites(options = {}) {
       },
       render() {
         return `<li id="${id}" class="flex row text-small padding-x padding-y-smaller">
-                  <span class="flex row pointer hover">
+                  <span class="flex row pointer">
                     ${favouriteButton.render()}
                     ${titleCmp.render()}
                   </span>
-                  <span class="flex row margin-left-auto pointer hover">
+                  <span class="flex row margin-left-auto pointer">
                     ${updateButton.render()}
                   </span>
-                  <span class="flex row margin-left pointer hover">
+                  <span class="flex row margin-left pointer">
                     ${deleteButton.render()}
                   </span>
                 </li>`;
@@ -231,7 +239,7 @@ const Favourites = function Favourites(options = {}) {
 
       favouritesButton = Button({
         icon: favouritesIcon,
-        cls: `control icon-smaller medium round light${favouritesButtonCls}`,
+        cls: `o-favourites control icon-smaller medium round light${favouritesButtonCls}`,
         tooltipText: title,
         tooltipPlacement: 'east',
         click() {
@@ -293,7 +301,7 @@ const Favourites = function Favourites(options = {}) {
                   requestsHandler.delete(id);
                   document.getElementById(id).remove();
                   if (id === getPageId()) {
-                    window.open('https://gis.haninge.se/origo-test', '_self');
+                    window.open(`/origo-test/${window.location.hash}`, '_self');
                   }
                 }
               },
@@ -319,7 +327,7 @@ const Favourites = function Favourites(options = {}) {
       });
 
       createFavouriteButton = Button({
-        cls: 'icon-small compact no-grow hover',
+        cls: 'favourites-hover icon-small compact no-grow',
         click: submit,
         icon: '#ic_heart-plus-outline_24px',
         style: 'vertical-align: middle; margin-left: 10px;'
@@ -362,6 +370,7 @@ const Favourites = function Favourites(options = {}) {
         user: localStorage.getItem('userIdForOrigoTest'),
         data: permalinkStore.getState(viewer, true)
       };
+      favObj.data.map = viewer.getMapName().replace('.json', '');
       const reqBody = JSON.stringify(favObj);
       e.preventDefault();
       fetch(`${serviceEndpoint}`, {
@@ -406,7 +415,7 @@ const Favourites = function Favourites(options = {}) {
                 requestsHandler.delete(id);
                 document.getElementById(id).remove();
                 if (id === getPageId()) {
-                  window.open('https://gis.haninge.se/origo-test', '_self');
+                  window.open(`/origo-test/${window.location.hash}`, '_self');
                 }
               }
             },
