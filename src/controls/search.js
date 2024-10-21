@@ -362,6 +362,10 @@ const Search = function Search(options = {}) {
 
     const infowindowHandler = function func(list, searchVal) {
       const result = list.reduce((r, a) => {
+        if (l && i && t && c && g) {
+          idAttribute = i;
+          layerNameAttribute = l;
+        }
         /* eslint-disable-next-line no-param-reassign */
         r[a[layerNameAttribute]] = r[a[layerNameAttribute]] || [];
         r[a[layerNameAttribute]].push(a);
@@ -370,9 +374,11 @@ const Search = function Search(options = {}) {
       const groups = [];
       Object.keys(result).forEach((layername) => {
         const resultArray = result[layername];
+        let layertitle;
+        const rows = [];
         if (viewer.getLayer(layername)) {
-          const layertitle = `${viewer.getLayer(layername).get('title')} (${resultArray.length})`;
-          const rows = [];
+          layertitle = `${viewer.getLayer(layername).get('title')} (${resultArray.length})`;
+
           if (searchlistOptions.makeSelectionButton) {
             const ids = resultArray.map(item => item[idAttribute]);
             const buttonText = searchlistOptions.makeSelectionButtonText || 'Gör urval i kartan';
@@ -405,16 +411,20 @@ const Search = function Search(options = {}) {
             });
             rows.push(makeSelection);
           }
+        } else if (l && i && t && c && g) {
+          layertitle = `${resultArray[0][t]} (${resultArray.length})`;
+        }
 
-          resultArray.forEach((element) => {
-            const row = Component({
-              addClick() {
-                document.getElementById(this.getId()).addEventListener('click', () => {
-                  const source = viewer.getMapSource();
-                  const projCode = viewer.getProjectionCode();
-                  const proj = viewer.getProjection();
-                  const layer = viewer.getLayer(layername);
-                  const id = element[idAttribute];
+        resultArray.forEach((element) => {
+          const row = Component({
+            addClick() {
+              document.getElementById(this.getId()).addEventListener('click', () => {
+                const source = viewer.getMapSource();
+                const projCode = viewer.getProjectionCode();
+                const proj = viewer.getProjection();
+                const layer = viewer.getLayer(layername);
+                const id = element[idAttribute];
+                if (layer) {
                   getFeature(id, layer, source, projCode, proj)
                     .then((res) => {
                       if (res.length > 0) {
@@ -422,58 +432,60 @@ const Search = function Search(options = {}) {
                         featureInfo.showFeatureInfo({ feature: res, layerName: featureLayerName }, { maxZoomLevel });
                       }
                     });
-                });
-              },
-              onInit() {
-                this.addComponent(El({
-                  cls: 'flex row align-center padding-left padding-right item',
-                  tagName: 'div',
-                  innerHTML: `${element[name]}`
-                }));
-              },
-              render() {
-                const content = this.getComponents().reduce((acc, item) => {
-                  const rendered = item.render();
-                  return acc + rendered;
-                }, '');
-                return `<li class="flex row text-smaller align-center padding-x padding-y-smaller hover pointer" id="${this.getId()}">${content}</li>`;
-              }
-            });
-            rows.push(row);
-          });
-
-          const contentComponent = Component({
-            onInit() {
-              this.addComponents(rows);
-            },
-            onRender() {
-              this.getComponents().forEach((comp) => {
-                comp.addClick();
+                } else {
+                  selectHandler({ text: { label: element.label } });
+                }
               });
+            },
+            onInit() {
+              this.addComponent(El({
+                cls: 'flex row align-center padding-left padding-right item',
+                tagName: 'div',
+                innerHTML: `${element[name]}`
+              }));
             },
             render() {
               const content = this.getComponents().reduce((acc, item) => {
                 const rendered = item.render();
                 return acc + rendered;
               }, '');
-              this.dispatch('render');
-              return `<ul id="${this.getId()}">${content}</ul>`;
+              return `<li class="flex row text-smaller align-center padding-x padding-y-smaller hover pointer" id="${this.getId()}">${content}</li>`;
             }
           });
+          rows.push(row);
+        });
 
-          const groupCmp = Collapse({
-            cls: '',
-            expanded: false,
-            headerComponent: CollapseHeader({
-              cls: 'hover padding-x padding-y-small grey-lightest border-bottom text-small',
-              icon: '#ic_chevron_right_24px',
-              title: layertitle
-            }),
-            contentComponent,
-            collapseX: false
-          });
-          groups.push(groupCmp);
-        }
+        const contentComponent = Component({
+          onInit() {
+            this.addComponents(rows);
+          },
+          onRender() {
+            this.getComponents().forEach((comp) => {
+              comp.addClick();
+            });
+          },
+          render() {
+            const content = this.getComponents().reduce((acc, item) => {
+              const rendered = item.render();
+              return acc + rendered;
+            }, '');
+            this.dispatch('render');
+            return `<ul id="${this.getId()}">${content}</ul>`;
+          }
+        });
+
+        const groupCmp = Collapse({
+          cls: '',
+          expanded: false,
+          headerComponent: CollapseHeader({
+            cls: 'hover padding-x padding-y-small grey-lightest border-bottom text-small',
+            icon: '#ic_chevron_right_24px',
+            title: layertitle
+          }),
+          contentComponent,
+          collapseX: false
+        });
+        groups.push(groupCmp);
       });
 
       let exportButton;
