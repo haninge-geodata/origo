@@ -18,6 +18,7 @@ import flattenGroups from './utils/flattengroups';
 import getcenter from './geometry/getcenter';
 import isEmbedded from './utils/isembedded';
 import generateUUID from './utils/generateuuid';
+import Logger from './components/logger';
 import permalink from './permalink/permalink';
 import Stylewindow from './style/stylewindow';
 
@@ -54,6 +55,7 @@ const Viewer = function Viewer(targetOption, options = {}) {
     source = {},
     clusterOptions = {},
     tileGridOptions = {},
+    loggerOptions = {},
     url,
     palette
   } = options;
@@ -105,6 +107,7 @@ const Viewer = function Viewer(targetOption, options = {}) {
   const footer = Footer({
     data: footerData
   });
+  const logger = Logger(loggerOptions);
   const centerMarker = CenterMarker();
   let mapSize;
 
@@ -127,6 +130,8 @@ const Viewer = function Viewer(targetOption, options = {}) {
   };
 
   const addControls = function addControls() {
+    const locIndex = controls.findIndex((control) => control.name === 'localization');
+    controls.push(controls.splice(locIndex, 1)[0]); // add localization last (after mapmenu)
     controls.forEach((control) => {
       this.addControl(control);
     });
@@ -527,6 +532,10 @@ const Viewer = function Viewer(targetOption, options = {}) {
     return urlParams;
   };
 
+  const getLogger = function getLogger() {
+    return logger;
+  };
+
   /**
    * Internal helper used when urlParams.feature is set and the popup should be displayed.
    * @param {any} feature
@@ -588,6 +597,7 @@ const Viewer = function Viewer(targetOption, options = {}) {
           this.addComponent(selectionmanager);
           this.addComponent(featureinfo);
           this.addComponent(centerMarker);
+          this.addComponent(logger);
 
           this.addControls();
 
@@ -718,7 +728,8 @@ const Viewer = function Viewer(targetOption, options = {}) {
     getEmbedded,
     permalink,
     generateUUID,
-    centerMarker
+    centerMarker,
+    getLogger
   });
 };
 
