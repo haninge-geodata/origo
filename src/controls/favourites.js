@@ -35,14 +35,6 @@ const Favourites = function Favourites(options = {}) {
 
   const favouritesFromServerArr = [];
 
-  // TA BORT INFÖR PROD!
-  const setGetUserIdForTest = () => {
-    if (!localStorage.getItem('userIdForOrigoTest')) {
-      localStorage.setItem('userIdForOrigoTest', generateUUID());
-    }
-    userId = localStorage.getItem('userIdForOrigoTest');
-  };
-
   const toggle = function toggle() {
     favouritesEl.classList.toggle('faded');
     favouritesButtonEl.classList.toggle('active');
@@ -229,13 +221,8 @@ const Favourites = function Favourites(options = {}) {
       target = document.getElementById(viewer.getMain().getMapTools().getId());
     },
     async onInit() {
-      setGetUserIdForTest();
       const favouritesButtonCls = isActive ? ' active' : '';
       const favouritesElCls = isActive ? '' : ' faded';
-
-      if (serviceEndpoint) {
-        permalink.setSaveOnServerServiceEndpoint(serviceEndpoint);
-      }
 
       favouritesButton = Button({
         icon: favouritesIcon,
