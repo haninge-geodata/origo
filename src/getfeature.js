@@ -27,7 +27,7 @@ export default function getfeature(id, layer, source, projCode, proj, extent) {
     return sourceType.AGS_FEATURE(id, layer, serverUrl);
   }
   // Note that this includes WMS which MultiSelect utilizes to make an WFS request to an unknown WFS layer assumed to reside on same place as WMS layer!
-  return sourceType.WFS(id, layer, serverUrl, extent);
+  return sourceType.WFS(id, layer, source, serverUrl, extent);
 }
 
 function fail(response) {
@@ -65,7 +65,7 @@ sourceType.AGS_FEATURE = function agsFeature(id, layer, serverUrl) {
   })).catch(error => console.error(error));
 };
 
-sourceType.WFS = function wfsSourceType(id, layer, serverUrl, extent) {
+sourceType.WFS = function wfsSourceType(id, layer, source, serverUrl, extent) {
   let wfsSource;
   const layerType = layer.get('type');
   // Create a temporary WFS source if layer is WMS.
@@ -81,7 +81,8 @@ sourceType.WFS = function wfsSourceType(id, layer, serverUrl, extent) {
       requestMethod: 'GET',
       url: serverUrl,
       customExtent: layer.get('extent'),
-      featureType: layer.get('id')
+      featureType: layer.get('id'),
+      filterType: layer.get('filterType') || source[layer.get('sourceName')].filterType
     };
     wfsSource = new WfsSource(sourceOpts);
   } else {
