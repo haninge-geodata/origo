@@ -2,7 +2,7 @@ import { Component, Button, Element as El, dom } from '../ui';
 import utils from '../utils';
 import permalinkStore from '../permalink/permalinkstore';
 import permalink from '../permalink/permalink';
-import generateUUID from '../utils/generateuuid';
+// import generateUUID from '../utils/generateuuid';
 
 const Favourites = function Favourites(options = {}) {
   const {
@@ -33,7 +33,26 @@ const Favourites = function Favourites(options = {}) {
   let form;
   let userId;
 
+  const oidcUser = sessionStorage.getItem('oidc_user');
+  if (oidcUser) {
+    userId = JSON.parse(oidcUser).displayname;
+  }
+
   const favouritesFromServerArr = [];
+
+  // // TA BORT INFÖR PROD!
+  // const setGetUserIdForTest = () => {
+  //   if (!localStorage.getItem('userIdForOrigoTest')) {
+  //     localStorage.setItem('userIdForOrigoTest', generateUUID());
+  //   }
+  //   userId = localStorage.getItem('userIdForOrigoTest');
+  // };
+
+  // const getUserId = () => {
+  //   if (!sessionStorage.getItem('oidc_user')) {
+  //   }
+  //   userId = sessionStorage.getItem('oidc_user').displayname;
+  // };
 
   const toggle = function toggle() {
     favouritesEl.classList.toggle('faded');
@@ -224,6 +243,10 @@ const Favourites = function Favourites(options = {}) {
       const favouritesButtonCls = isActive ? ' active' : '';
       const favouritesElCls = isActive ? '' : ' faded';
 
+      if (serviceEndpoint) {
+        permalink.setSaveOnServerServiceEndpoint(serviceEndpoint);
+      }
+
       favouritesButton = Button({
         icon: favouritesIcon,
         cls: `o-favourites control icon-smaller medium round light${favouritesButtonCls}`,
@@ -354,7 +377,7 @@ const Favourites = function Favourites(options = {}) {
       const value = Object.fromEntries(formData.entries());
       const favObj = {
         name: value.name,
-        user: localStorage.getItem('userIdForOrigoTest'),
+        user: userId,
         data: permalinkStore.getState(viewer, true)
       };
       favObj.data.map = viewer.getMapName().replace('.json', '');
