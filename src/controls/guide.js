@@ -37,7 +37,7 @@ const Guide = function Guide(options = {}) {
       const strippedOfComments = stripJSONComments(await response.text());
       const data = JSON.parse(strippedOfComments);
       // eslint-disable-next-line no-undef
-      const defaultControls = origo.getConfig().defaultControls;
+      const defaultControls = window.Origo().getConfig().defaultControls;
       const configControls = data.controls;
       const activeControls = defaultControls.concat(configControls);
       return activeControls;
