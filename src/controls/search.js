@@ -361,11 +361,11 @@ const Search = function Search(options = {}) {
     };
 
     const infowindowHandler = function func(list, searchVal) {
+      if (l && i && t && c && g) {
+        idAttribute = i;
+        layerNameAttribute = l;
+      }
       const result = list.reduce((r, a) => {
-        if (l && i && t && c && g) {
-          idAttribute = i;
-          layerNameAttribute = l;
-        }
         /* eslint-disable-next-line no-param-reassign */
         r[a[layerNameAttribute]] = r[a[layerNameAttribute]] || [];
         r[a[layerNameAttribute]].push(a);
@@ -423,7 +423,7 @@ const Search = function Search(options = {}) {
                 const projCode = viewer.getProjectionCode();
                 const proj = viewer.getProjection();
                 const layer = viewer.getLayer(layername);
-                const id = element[idAttribute];
+                const id = element[(l && i && t && c && g) ? i : idAttribute];
                 if (layer) {
                   getFeature(id, layer, source, projCode, proj)
                     .then((res) => {
