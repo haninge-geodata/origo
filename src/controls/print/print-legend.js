@@ -127,8 +127,8 @@ const LayerRow = function LayerRow(options) {
    * @returns {string}
    */
   const getTitleWithIcon = (title, icon) => `
-    <div class="flex row">
-      <div class="grey-lightest round compact icon-small light relative no-shrink legend-icon" style="height: 1.5rem; width: 1.5rem;">
+    <div class="flex row padding-left">
+      <div class="grey-lightest compact icon-small light relative no-shrink legend-icon" style="height: 1.5rem; width: 1.5rem;">
         <span class="icon">
           ${icon}
         </span>
@@ -148,7 +148,7 @@ const LayerRow = function LayerRow(options) {
       <li class="flex row align-center padding-left padding-right item">
         <div class="flex column">
           <div class="flex row">
-            <div class="grey-lightest round compact icon-small light relative no-shrink legend-icon" style="height: 1.5rem; width: 1.5rem;">
+            <div class="grey-lightest compact icon-small light relative no-shrink legend-icon" style="height: 1.5rem; width: 1.5rem;">
               ${iconElement}
             </div>
             <div class="padding-left-small grow no-select overflow-hidden">${title}</div>
