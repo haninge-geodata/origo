@@ -10,6 +10,8 @@ export default function PrintMap(options = {}) {
     logo,
     northArrow,
     printLegend,
+    printLegendQgisItemWidth,
+    printLegendQgisItemHeight,
     map,
     viewer
   } = options;
@@ -27,7 +29,7 @@ export default function PrintMap(options = {}) {
   const bottomRightMapControls = El({ cls: 'flex column align-start absolute bottom-right transparent z-index-ontop-middle' });
   const logoComponent = Logo({ logo });
   const northArrowComponent = NorthArrow({ northArrow, map });
-  const printLegendComponent = PrintLegend({ printLegend, viewer });
+  const printLegendComponent = PrintLegend({ printLegend, printLegendQgisItemWidth, printLegendQgisItemHeight, viewer });
 
   return Component({
     onInit() {
