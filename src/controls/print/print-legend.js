@@ -66,7 +66,8 @@ const LayerRow = function LayerRow(options) {
       }
       return `${style[0][0].icon.src}?format=${format}`;
     }
-    return `${url}?SERVICE=WMS&layer=${layerName}&format=${format}&version=1.1.1&request=getLegendGraphic&scale=401&legend_options=dpi:300`;
+    const filterType = viewer.getMapSource()[aLayer.getProperties().sourceName]?.filterType;
+    return `${url}?SERVICE=WMS&layer=${layerName}&format=${format}&version=1.1.1&request=getLegendGraphic${filterType === 'qgis' ? '&DPI=192' : '&scale=401&legend_options=dpi:300'}`;
   };
 
   /**
@@ -203,15 +204,18 @@ const LayerRow = function LayerRow(options) {
           <img src="${getLegendGraphicUrl}" alt="${title}" />
         </div>`;
     }
-    if (json.Legend[0].rules.length <= 1) {
-      const icon = `<img class="cover" src="${getLegendGraphicUrl}"  alt="${title}"/>`;
+
+    const filterType = viewer.getMapSource()[layer.getProperties().sourceName]?.filterType;
+    const legendRules = filterType === 'qgis' ? (json.nodes[0].symbols || json.nodes) : json.Legend[0].rules;
+    if (legendRules?.length <= 1) {
+      const icon = `<img class="cover" src="${filterType === 'qgis' ? `${getLegendGraphicUrl}&rule=${encodeURIComponent(legendRules?.[0].title)}&width=24&height=24` : getLegendGraphicUrl}"  alt="${title}"/>`;
       return getTitleWithIcon(title, icon);
     }
 
     const thematicStyle = (layer.get('thematicStyling') === true) ? viewer.getStyle(layer.get('styleName')) : undefined;
-    const rules = json.Legend[0].rules.reduce((okRules, rule, index) => {
+    const rules = legendRules.reduce((okRules, rule, index) => {
       if (!(layer.get('thematicStyling')) || thematicStyle[0]?.thematic[index]?.visible) {
-        const ruleImageUrl = `${getLegendGraphicUrl}&rule=${rule.name}`;
+        const ruleImageUrl = `${getLegendGraphicUrl}&rule=${filterType === 'qgis' ? `${encodeURIComponent(rule.title)}&width=24&height=24` : rule.name}`;
         const rowTitle = rule.title ? rule.title : index + 1;
         okRules.push(getListItem(rowTitle, ruleImageUrl, true));
       }
