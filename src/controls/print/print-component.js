@@ -26,6 +26,8 @@ const PrintComponent = function PrintComponent(options = {}) {
     logo,
     northArrow,
     printLegend,
+    printLegendQgisItemWidth,
+    printLegendQgisItemHeight,
     filename = 'origo-map',
     map,
     target,
@@ -253,7 +255,7 @@ const PrintComponent = function PrintComponent(options = {}) {
     }
   });
 
-  const printMapComponent = PrintMap({ logo, northArrow, map, viewer, showNorthArrow, printLegend, showPrintLegend });
+  const printMapComponent = PrintMap({ logo, northArrow, map, viewer, showNorthArrow, printLegend, printLegendQgisItemWidth, printLegendQgisItemHeight, showPrintLegend });
 
   const centerComponent = El({ cls: 'flex column align-start absolute center-center transparent z-index-ontop-middle' });
   const printMapSpinner = El({ cls: 'print-map-loading-spinner' });

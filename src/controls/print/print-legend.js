@@ -32,7 +32,9 @@ import { isHidden, renderSvgIcon } from '../../utils/legendmaker';
 const LayerRow = function LayerRow(options) {
   const {
     layer,
-    viewer
+    viewer,
+    printLegendQgisItemWidth,
+    printLegendQgisItemHeight
   } = options;
 
   /**
@@ -208,14 +210,14 @@ const LayerRow = function LayerRow(options) {
     const filterType = viewer.getMapSource()[layer.getProperties().sourceName]?.filterType;
     const legendRules = filterType === 'qgis' ? (json.nodes[0].symbols || json.nodes) : json.Legend[0].rules;
     if (legendRules?.length <= 1) {
-      const icon = `<img class="cover" src="${filterType === 'qgis' ? `${getLegendGraphicUrl}&rule=${encodeURIComponent(legendRules?.[0].title)}&width=24&height=24` : getLegendGraphicUrl}"  alt="${title}"/>`;
+      const icon = `<img class="cover" src="${filterType === 'qgis' ? `${getLegendGraphicUrl}&rule=${encodeURIComponent(legendRules?.[0].title)}&width=${printLegendQgisItemWidth}&height=${printLegendQgisItemHeight}` : getLegendGraphicUrl}"  alt="${title}"/>`;
       return getTitleWithIcon(title, icon);
     }
 
     const thematicStyle = (layer.get('thematicStyling') === true) ? viewer.getStyle(layer.get('styleName')) : undefined;
     const rules = legendRules.reduce((okRules, rule, index) => {
       if (!(layer.get('thematicStyling')) || thematicStyle[0]?.thematic[index]?.visible) {
-        const ruleImageUrl = `${getLegendGraphicUrl}&rule=${filterType === 'qgis' ? `${encodeURIComponent(rule.title)}&width=24&height=24` : rule.name}`;
+        const ruleImageUrl = `${getLegendGraphicUrl}&rule=${filterType === 'qgis' ? `${encodeURIComponent(rule.title)}&width=${printLegendQgisItemWidth}&height=${printLegendQgisItemHeight}` : rule.name}`;
         const rowTitle = rule.title ? rule.title : index + 1;
         okRules.push(getListItem(rowTitle, ruleImageUrl, true));
       }
@@ -274,7 +276,9 @@ const LayerRow = function LayerRow(options) {
 
 const LayerRows = function LayerRows(options) {
   const {
-    viewer
+    viewer,
+    printLegendQgisItemWidth,
+    printLegendQgisItemHeight
   } = options;
 
   return Component({
@@ -284,7 +288,7 @@ const LayerRows = function LayerRows(options) {
 
       overlays.forEach((layer) => {
         if (!layer.get('drawlayer')) {
-          overlayEls.push(LayerRow({ layer, viewer }));
+          overlayEls.push(LayerRow({ layer, viewer, printLegendQgisItemWidth, printLegendQgisItemHeight }));
         }
       });
       const layerListCmp = Component({
@@ -305,7 +309,9 @@ const LayerRows = function LayerRows(options) {
 
 export default function PrintLegend(options = {}) {
   const {
-    viewer
+    viewer,
+    printLegendQgisItemWidth,
+    printLegendQgisItemHeight
   } = options;
 
   const setVisible = (display) => {
@@ -318,7 +324,9 @@ export default function PrintLegend(options = {}) {
     },
     async render() {
       const overlaysCmp = LayerRows({
-        viewer
+        viewer,
+        printLegendQgisItemWidth,
+        printLegendQgisItemHeight
       });
 
       return `
