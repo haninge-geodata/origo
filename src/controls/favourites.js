@@ -77,7 +77,7 @@ const Favourites = function Favourites(options = {}) {
   };
 
   const openFavourite = function openFavourite(id, pageTitle) {
-    const openFav = window.open(`/origo-test/?id=${id}${window.location.hash}`, '_blank');
+    const openFav = window.open(`/?id=${id}${window.location.hash}`, '_blank');
     setTimeout(() => {
       openFav.document.title = pageTitle;
     }, 0);
@@ -311,7 +311,7 @@ const Favourites = function Favourites(options = {}) {
                   requestsHandler.delete(id);
                   document.getElementById(id).remove();
                   if (id === getPageId()) {
-                    window.open(`/origo-test/${window.location.hash}`, '_self');
+                    window.open(`/${window.location.hash}`, '_self');
                   }
                 }
               },
@@ -425,7 +425,7 @@ const Favourites = function Favourites(options = {}) {
                 requestsHandler.delete(id);
                 document.getElementById(id).remove();
                 if (id === getPageId()) {
-                  window.open(`/origo-test/${window.location.hash}`, '_self');
+                  window.open(`/${window.location.hash}`, '_self');
                 }
               }
             },
