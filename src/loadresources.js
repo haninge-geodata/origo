@@ -83,15 +83,24 @@ const loadResources = async function loadResources(mapOptions, config) {
         .then(() => map);
     } else if (typeof (mapOptions) === 'string') {
       if (isUrl(mapOptions)) {
-        urlParams = permalink.parsePermalink(mapOptions);
-        url = mapOptions.split('#')[0];
+        if (window.location.hash) {
+          urlParams = permalink.parsePermalink(window.location.href);
+          url = window.location.href.split('#')[0];
+        } else {
+          urlParams = permalink.parsePermalink(mapOptions);
+          url = mapOptions.split('#')[0];
+        }
         mapUrl = url;
 
         // remove file name if included in
         url = trimUrl(url);
 
         json = `${urlParams.map}.json`;
-        url += json;
+        if (isUrl(json)) {
+          url = json;
+        } else {
+          url += json;
+        }
       } else {
         json = mapOptions;
         if (window.location.hash) {
