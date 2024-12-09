@@ -83,6 +83,9 @@ const Viewer = function Viewer(targetOption, options = {}) {
       const layers = {};
       capabilitiesResults.forEach(result => {
         layers[result.name] = result.capabilites;
+        if (source[result.name]?.saveCapabilitiesDoc !== false) {
+          source[result.name].capabilitiesDoc = result.capabilitesDoc;
+        }
       });
       return layers;
     }).catch(error => console.log(error));
@@ -567,7 +570,7 @@ const Viewer = function Viewer(targetOption, options = {}) {
       }));
 
       tileGrid = maputils.tileGrid(tileGridSettings);
-      stylewindow = Stylewindow({ palette, viewer: this });
+      stylewindow = Stylewindow({ palette, viewer: this, localization: controls.find((control) => control.name === 'localization') });
 
       setMap(Map(Object.assign(options, { projection, center, zoom, target: this.getId() })));
 
