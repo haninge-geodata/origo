@@ -311,6 +311,10 @@ export function createSubexportComponent({ selectionGroup, viewer, exportOptions
     layerSpecificExportOptions = exportOptions.layerSpecificExport.find(
       (i) => i.layer === selectionGroup
     );
+    // If the export option exportDrawLayers is set true and the layer checked is a draw layer, use layerSpecificExportOptions set for the special layername "_drawLayers_"
+    if (exportOptions.exportDrawLayers === true && (viewer.getLayer(selectionGroup).get('drawLayer') === true)) {
+      layerSpecificExportOptions = exportOptions.layerSpecificExport.find((i) => i.layer === '_drawLayers_');
+    }
   }
   if (layerSpecificExportOptions) {
     const exportUrls = layerSpecificExportOptions.exportUrls || [];
@@ -348,7 +352,8 @@ export function createSubexportComponent({ selectionGroup, viewer, exportOptions
   if (exportOptions.simpleExport && exportOptions.simpleExport.url) {
     const simpleExport = exportOptions.simpleExport;
     const simpleExportLayers = Array.isArray(simpleExport.layers) ? simpleExport.layers : [];
-    const exportAllowed = simpleExportLayers.length === 0 || simpleExportLayers.find((l) => l === selectionGroup);
+    const exportAllowed = simpleExportLayers.length === 0 || simpleExportLayers.find((l) => l === selectionGroup)
+      || (exportOptions.exportDrawLayers === true && (viewer.getLayer(selectionGroup).get('drawLayer') === true));
     if (exportAllowed) {
       const simpleExportUrl = simpleExport.url || false;
       const buttonText = simpleExport.button.buttonText || defaultText;
@@ -385,7 +390,8 @@ export function createSubexportComponent({ selectionGroup, viewer, exportOptions
   if (exportOptions.clientExport) {
     const clientExport = exportOptions.clientExport;
     const clientExportLayers = Array.isArray(clientExport.layers) ? clientExport.layers : [];
-    const exportAllowed = clientExportLayers.length === 0 || clientExportLayers.find((l) => l === selectionGroup);
+    const exportAllowed = clientExportLayers.length === 0 || clientExportLayers.find((l) => l === selectionGroup)
+      || (exportOptions.exportDrawLayers === true && (viewer.getLayer(selectionGroup).get('drawLayer') === true));
     if (exportAllowed) {
       const roundButton = clientExport.button.roundButton || false;
       const buttonText = clientExport.button.buttonText || defaultText;
