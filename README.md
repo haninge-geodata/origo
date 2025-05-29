@@ -36,9 +36,9 @@ Not convinced? Or maybe you need some inspiration? Check out these examples of w
  * [Demo of latest release](http://origo-map.github.io/origo-map-demo/index.html)
  * [Enakartan](http://karta.enkoping.se)
  * [Eskilstunakartan](https://karta.eskilstuna.se)
- * [Hallstakartan](http://karta.hallstahammar.se)
  * [Haninge kommun webbkarta](https://karta.haninge.se/)
  * [Karlstadskartan](http://gi.karlstad.se)
+ * [Malmö](https://stadsatlas.malmo.se/stadsatlas/)
  * [Mälardalskartan](http://www.malardalskartan.se)
  * [Sigtunakartan](https://karta.sigtuna.se)
  * [Strängnäskartan](https://kartor.strangnas.se)
@@ -53,7 +53,7 @@ Just follow these three steps and you will be up and running in no time.
 The minimum requirements are:
 
   * [Git](https://git-scm.com/)
-  * [Node.js](https://nodejs.org/) (version 10 or higher is recommended to avoid build problems)
+  * [Node.js](https://nodejs.org/) (current lts version or higher is recommended to avoid build problems)
 
  1. To get your own local copy of Origo use git to clone the repository with the command below:
 
@@ -88,6 +88,6 @@ More information about Origo plugins can be found in the [PLUGINS.md](https://gi
 The project is licensed under the BSD 2-clause license. It is specified in the [license file](LICENSE.txt).
 
 ## Contact
-If you want to get in contact with us, please join our chat on slack.com using this invitation: [origo-map.slack.com](https://join.slack.com/t/origo-map/shared_invite/enQtMjU0OTQ5MzcxMDQ3LTIwYzFiZjdmODJiYmQwZTUxNmIxZWM2NzljOWRiZTUyOWNlMWUxYzQ5ZGQwMTRkYzdkM2IyMGE5ZTQ4MTM4NDM).
+If you want to get in contact with us and other users of Origo then please join our chat on discord using this invitation: [origo.map](https://discord.gg/NWRAkWAXQ3).
 
 On [https://origo-map.github.io/archive/](https://origo-map.github.io/archive/) you can take part of our newsletter and read about our meetups.

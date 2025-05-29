@@ -4,7 +4,6 @@ import GeoJSONFormat from 'ol/format/GeoJSON';
 import IGCFormat from 'ol/format/IGC';
 import KMLFormat from 'ol/format/KML';
 import TopoJSONFormat from 'ol/format/TopoJSON';
-import Style from '../style';
 import { Component, InputFile, Button, Element as El } from '../ui';
 
 const DragAndDrop = function DragAndDrop(options = {}) {
@@ -12,6 +11,11 @@ const DragAndDrop = function DragAndDrop(options = {}) {
   let viewer;
   let map;
   let legendButton;
+  const localization = options.localization;
+
+  function localize(key) {
+    return localization.getStringByKeys({ targetParentKey: 'draganddrop', targetKey: key });
+  }
 
   if (options.showLegendButton) {
     const fileInput = InputFile({
@@ -46,8 +50,8 @@ const DragAndDrop = function DragAndDrop(options = {}) {
         inputEl.value = null;
         inputEl.click();
       },
-      text: 'Lägg till från fil',
-      ariaLabel: 'Lägg till från fil'
+      text: localize('addFromFile'),
+      ariaLabel: localize('addFromFile')
     });
 
     legendButton = El({
@@ -68,54 +72,14 @@ const DragAndDrop = function DragAndDrop(options = {}) {
         const legend = viewer.getControlByName('legend');
         legend.addButtonToTools(legendButton, 'addLayerButton');
       }
-      const groupName = options.groupName || 'egna-lager';
-      const groupTitle = options.groupTitle || 'Egna lager';
+      const groupName = options.groupName || localize('yourLayersName');
+      const groupTitle = options.groupTitle || localize('yourLayersTitle');
       const draggable = options.draggable || true;
+      const promptlessRemoval = options.promptlessRemoval !== false;
       const styleByAttribute = options.styleByAttribute || false;
-      const featureStyles = options.featureStyles || {
-        Point: [{
-          circle: {
-            radius: 5,
-            stroke: {
-              color: [0, 255, 255, 1],
-              width: 0
-            },
-            fill: {
-              color: [0, 255, 255, 1]
-            }
-          }
-        }],
-        LineString: [{
-          stroke: {
-            color: [255, 255, 255, 1],
-            width: 5
-          }
-        },
-        {
-          stroke: {
-            color: [0, 255, 255, 0.5],
-            width: 3
-          }
-        }],
-        Polygon: [{
-          stroke: {
-            color: [255, 255, 255, 1],
-            width: 5
-          }
-        },
-        {
-          stroke: {
-            color: [0, 255, 255, 1],
-            width: 3
-          }
-        },
-        {
-          fill: {
-            color: [0, 255, 255, 0.1]
-          }
-        }]
-      };
-      const vectorStyles = Style.createGeometryStyle(featureStyles);
+      const zoomToExtent = options.zoomToExtent !== false;
+      const zoomToExtentOnLoad = options.zoomToExtentOnLoad !== false;
+      const featureStyles = options.featureStyles;
       dragAndDrop = new olDragAndDrop({
         formatConstructors: [
           GPXFormat,
@@ -129,6 +93,7 @@ const DragAndDrop = function DragAndDrop(options = {}) {
       this.addInteraction();
 
       dragAndDrop.on('addfeatures', (event) => {
+        const fileExtension = event.file.name.split('.').pop();
         let layerName = event.file.name.split('.')[0].replace(/\W/g, '');
         let layerTitle = event.file.name.split('.')[0];
         if (viewer.getLayer(layerName)) {
@@ -153,15 +118,44 @@ const DragAndDrop = function DragAndDrop(options = {}) {
           styleByAttribute,
           queryable: true,
           removable: true,
+          promptlessRemoval,
+          zoomToExtent,
           visible: true,
           source: 'none',
           type: 'GEOJSON',
           features: event.features
         };
         if (!styleByAttribute) {
-          layerOptions.style = vectorStyles[event.features[0].getGeometry().getType()];
+          const styles = [];
+          const types = new Set();
+          const getStyleFunction = viewer.getStylewindow().getStyleFunction;
+          event.features.forEach((feature) => {
+            if (feature.getGeometry() !== null) {
+              const geometryType = feature.getGeometry().getType();
+              if (featureStyles && featureStyles[geometryType]) {
+                if (!types.has(geometryType)) {
+                  styles.push(...featureStyles[geometryType]);
+                  types.add(geometryType);
+                }
+              } else {
+                getStyleFunction(feature);
+              }
+            }
+          });
+          if (styles.length && (!['kml', 'kmz'].includes(fileExtension.toLowerCase()))) {
+            layerOptions.styleDef = styles;
+          }
         }
-        viewer.addLayer(layerOptions);
+        const layer = viewer.addLayer(layerOptions);
+        if (zoomToExtentOnLoad) {
+          const extent = typeof layer.getSource !== 'undefined' && typeof layer.getSource().getExtent !== 'undefined' ? layer.getSource().getExtent() : layer.getExtent();
+          if (layer.getVisible()) {
+            viewer.getMap().getView().fit(extent, {
+              padding: [50, 50, 50, 50],
+              duration: 1000
+            });
+          }
+        }
       });
       this.render();
     },

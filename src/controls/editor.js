@@ -1,18 +1,23 @@
 import { Component, Button, dom } from '../ui';
-import editorToolbar from './editor/editortoolbar';
+import EditorToolbar from './editor/editortoolbar';
 import EditHandler from './editor/edithandler';
 
 const Editor = function Editor(options = {}) {
   const {
     autoForm = false,
     autoSave = true,
-    isActive = true
+    isActive = true,
+    featureList = true
   } = options;
   let editorButton;
   let target;
   let viewer;
   let isVisible = isActive;
+  let editorToolbar;
   let toolbarVisible = false;
+  /** Keeps track of the last selected item in featureinfo. We need to use our own variable for this
+   * in order to determine if editor got activated directly from featureinfo or some other tool has been active between. */
+  let lastSelectedItem;
 
   /** The handler were all state is kept */
   let editHandler;
@@ -25,6 +30,16 @@ const Editor = function Editor(options = {}) {
     // There are some serious event dependencies between viewer, editor, edithandler, editortoolbar, editorlayers, dropdown and editorbutton,
     // which makes it almost impossible to do things in correct order.
     isVisible = detail.active;
+    // Actually, if we're going visible
+    if (isVisible) {
+      if (lastSelectedItem && lastSelectedItem.getLayer().get('editable') && !lastSelectedItem.getLayer().get('isTable')) {
+        // Set a preselected feature. No use to set layer in handler as toolbar keeps state that will override a change of layer in handler anyway
+        // when editor toolbar becomes visible.
+        editHandler.preselectFeature(lastSelectedItem.getFeature());
+        // Have to set layer in toolbar instead of handler.
+        editorToolbar.changeActiveLayer(lastSelectedItem.getLayer().get('name'));
+      }
+    }
     viewer.dispatch('toggleClickInteraction', detail);
   };
 
@@ -63,28 +78,68 @@ const Editor = function Editor(options = {}) {
         autoSave,
         currentLayer,
         editableLayers: editableFeatureLayers,
-        isActive
+        isActive,
+        viewer,
+        modifyTools: options.modifyTools
       });
       const handlerOptions = Object.assign({}, options, {
         autoForm,
         autoSave,
         currentLayer,
         editableLayers,
-        isActive
+        isActive,
+        featureList
       });
       editHandler = EditHandler(handlerOptions, viewer);
+      // Relay selected features from handler to toolbar so toolbar can calculate which tools are available for the current situation
+      editHandler.on('select', (f) => {
+        editorToolbar.setSelection(f);
+      });
+      editorToolbar = EditorToolbar(toolbarOptions);
+      // Set active modify tool when selected in toolbar
+      editorToolbar.on('modifytoolchanged', (e) => {
+        editHandler.setModifyTool(e);
+      });
+
+      // Set up eventhandler for when featureinfo selects (or highlights) a feature
+      const featureInfo = viewer.getFeatureinfo();
+      featureInfo.on('changeselection', detail => {
+        if (isVisible) {
+          // This can only happen if featureInfo.ShowFeatureInfo, featureInfo.showInfow or featureInfo.render is called
+          // from api, as featureInfo component can not be active when editor is so the user can not click in the map to select anything.
+          if (detail && detail.getLayer().get('editable') && !detail.getLayer().get('isTable')) {
+            // Set a preselected feature.
+            editHandler.preselectFeature(detail.getFeature());
+            // Actually change active layer.
+            editHandler.setActiveLayer(detail.getLayer().get('name'));
+            // Have to update state in toolbar as well.
+            editorToolbar.changeActiveLayer(detail.getLayer().get('name'));
+            // Clear featureinfo to close the popup which otherwise would just be annoying
+            featureInfo.clear();
+          }
+        } else {
+          lastSelectedItem = detail;
+        }
+      });
+
+      // Set up eventhandler for when featureinfo clears selection
+      // Event is sent from featureinfo when popup etc is closed or cleared, but not when tool changes
+      featureInfo.on('clearselection', () => {
+        lastSelectedItem = null;
+      });
 
       viewer.on('toggleClickInteraction', (detail) => {
         if (detail.name === 'editor' && detail.active) {
           editorButton.dispatch('change', { state: 'active' });
         } else {
+          // Someone else got active. Ditch the last selected item as we don't go directly from featureinfo to edit
+          lastSelectedItem = null;
           editorButton.dispatch('change', { state: 'initial' });
         }
       });
       this.addComponent(editorButton);
-      this.on('render', this.onRender);
+      this.addComponent(editorToolbar);
       this.render();
-      editorToolbar.init(toolbarOptions, viewer);
     },
     onInit() {
       const state = isActive ? 'active' : 'initial';
@@ -119,6 +174,8 @@ const Editor = function Editor(options = {}) {
       const htmlString = editorButton.render();
       const el = dom.html(htmlString);
       document.getElementById(target).appendChild(el);
+      // Toolbar injects itself to DOM, so no need to handle return value
+      editorToolbar.render();
       this.dispatch('render');
       viewer.dispatch('toggleClickInteraction', {
         name: 'editor',
@@ -128,8 +185,9 @@ const Editor = function Editor(options = {}) {
     createFeature,
     editFeatureAttributes,
     deleteFeature,
+
     changeActiveLayer: (layerName) => {
-      // Only need to actually cahne layer if editor is active. Otherwise state is just set in toolbar and will
+      // Only need to actually change layer if editor is active. Otherwise state is just set in toolbar and will
       // activate set layer when toggled visible
       if (isVisible) {
         editHandler.setActiveLayer(layerName);

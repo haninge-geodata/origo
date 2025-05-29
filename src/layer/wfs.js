@@ -7,7 +7,9 @@ export default function wfs(layerOptions, viewer) {
   const wfsDefault = {
     layerType: 'vector'
   };
-  const sourceDefault = {};
+  const sourceDefault = {
+    filterType: 'cql'
+  };
   const wfsOptions = Object.assign({}, wfsDefault, layerOptions);
   const sourceOptions = Object.assign({}, sourceDefault, viewer.getMapSource()[layerOptions.sourceName]);
   sourceOptions.featureType = wfsOptions.id;
@@ -33,6 +35,7 @@ export default function wfs(layerOptions, viewer) {
     wfsOptions.visible = true;
   }
   sourceOptions.strategy = layerOptions.strategy ? layerOptions.strategy : sourceOptions.strategy;
+  sourceOptions.requestMethod = layerOptions.requestMethod ? layerOptions.requestMethod : sourceOptions.requestMethod;
   switch (sourceOptions.strategy) {
     case 'all':
       sourceOptions.loadingstrategy = LoadingStrategy.all;
