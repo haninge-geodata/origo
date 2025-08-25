@@ -9,6 +9,12 @@ import LayerProperties from './legend/overlayproperties';
 import PopupMenu from '../ui/popupmenu';
 
 const Legend = function Legend(options = {}) {
+  const localization = options.localization;
+
+  function localize(key) {
+    return localization.getStringByKeys({ targetParentKey: 'legend', targetKey: key });
+  }
+
   const {
     cls: clsSettings = '',
     style: styleSettings = {},
@@ -26,7 +32,7 @@ const Legend = function Legend(options = {}) {
     searchLayersMinLength = 2,
     searchLayersLimit = 10,
     searchLayersParameters = ['name', 'title'],
-    searchLayersPlaceholderText = 'Sök lager'
+    searchLayersPlaceholderText = localize('placeholderText')
   } = options;
 
   let {
@@ -174,7 +180,7 @@ const Legend = function Legend(options = {}) {
 
   const turnOffLayersButton = Button({
     cls: 'round compact icon-small margin-x-smaller',
-    title: 'Släck alla lager',
+    title: localize('turnOffLayersTitle'),
     click() {
       viewer.dispatch('active:turnofflayers');
     },
@@ -190,14 +196,13 @@ const Legend = function Legend(options = {}) {
 
   const showVisibleLayersButton = Button({
     cls: 'compact icon-smaller margin-x-small hidden',
-    title: 'Visa endast tända lager',
+    title: localize('showVisibleTitle'),
     click() {
       viewer.dispatch('active:togglevisibleLayers');
     },
     style: {
       'vertical-align': 'bottom',
-      'margin-bottom': '13px',
-      'padding-right': '6px'
+      margin: '0.45rem 0.5rem'
     },
     icon: '#ic_close_fullscreen_24px',
     iconStyle: {
@@ -207,14 +212,13 @@ const Legend = function Legend(options = {}) {
 
   const showAllVisibleLayersButton = Button({
     cls: 'compact icon-smaller margin-x-small hidden',
-    title: 'Visa alla lager',
+    title: localize('showAllVisibleTitle'),
     click() {
       viewer.dispatch('active:togglevisibleLayers');
     },
     style: {
       'vertical-align': 'bottom',
-      'margin-bottom': '13px',
-      'padding-right': '6px'
+      margin: '0.45rem 0.5rem'
     },
     icon: '#ic_open_in_full_24px',
     iconStyle: {
@@ -233,7 +237,10 @@ const Legend = function Legend(options = {}) {
       visibleOverlaysCmp.dispatch('readOverlays');
       document.getElementById(toolsCmp.getId()).classList.add('hidden');
     } else {
-      document.getElementById(overlaysCmp.getId()).classList.remove('hidden');
+      const nrOverlays = overlaysCmp.getOverlays().length;
+      if (nrOverlays > 0) {
+        document.getElementById(overlaysCmp.getId()).classList.remove('hidden');
+      }
       document.getElementById(visibleOverlaysCmp.getId()).classList.add('hidden');
       document.getElementById(showAllVisibleLayersButton.getId()).classList.add('hidden');
       document.getElementById(showVisibleLayersButton.getId()).classList.remove('hidden');
@@ -249,7 +256,7 @@ const Legend = function Legend(options = {}) {
 
   const turnOnLayersButton = Button({
     cls: 'round compact icon-small margin-x-smaller',
-    title: 'Tänd alla lager utom bakgrundslager',
+    title: localize('turnOnLayersTitle'),
     click() {
       viewer.dispatch('active:turnonlayers');
     },
@@ -330,8 +337,8 @@ const Legend = function Legend(options = {}) {
       'align-self': 'center'
     },
     icon: '#o_add_24px',
-    ariaLabel: 'Lägg till lager',
-    title: 'Lägg till lager',
+    ariaLabel: localize('addLayerTitle'),
+    title: localize('addLayerTitle'),
     tabIndex: -1,
     validStates: ['initial', 'hidden'],
     state: 'hidden'
@@ -392,7 +399,7 @@ const Legend = function Legend(options = {}) {
       layer.setVisible(true);
       document.getElementsByClassName('o-search-layer-field')[0].value = '';
     } else {
-      console.error('Search options are missing');
+      console.error(localize('selectHandlerError'));
     }
   }
 
@@ -480,7 +487,7 @@ const Legend = function Legend(options = {}) {
               found = true;
             }
             if (typeof layer.get('title') === 'undefined') {
-              value = `Titel saknas (${shorten(value, obj.value)})`;
+              value = `${localize('titleMissing')} (${shorten(value, obj.value)})`;
             } else {
               value = `${layer.get('title')} (${shorten(value, obj.value)})`;
             }
@@ -564,7 +571,9 @@ const Legend = function Legend(options = {}) {
         addPopupMenuItems(button, this);
       } else {
         const toolsEl = document.getElementById(toolsCmp.getId());
-        toolsEl.classList.remove('hidden');
+        if (!visibleLayersViewActive) {
+          toolsEl.classList.remove('hidden');
+        }
         if (toolsCmp.getComponents().length > 0) {
           toolsEl.style.justifyContent = 'space-between';
           toolsEl.insertBefore(dom.html(divider.render()), toolsEl.firstChild);
@@ -644,16 +653,16 @@ const Legend = function Legend(options = {}) {
       target = document.getElementById(viewer.getMain().getId());
       const maxHeight = calcMaxHeight(getTargetHeight());
       overlaysCmp = Overlays({
-        viewer, cls: contentCls, style: contentStyle, labelOpacitySlider
+        viewer, cls: contentCls, style: contentStyle, labelOpacitySlider, localization
       });
       visibleOverlaysCmp = VisibleOverlays({
-        viewer, cls: `${contentCls} hidden`, style: contentStyle, labelOpacitySlider
+        viewer, cls: `${contentCls} hidden`, style: contentStyle, labelOpacitySlider, localization
       });
       const baselayerCmps = [toggleGroup];
 
       toolsCmp = El({
         cls: 'flex padding-small no-shrink hidden',
-        tooltipText: 'Lagerbytare',
+        tooltipText: localize('layerSwitcher'),
         style: {
           'background-color': '#fff',
           'justify-content': 'flex-end',
@@ -666,13 +675,12 @@ const Legend = function Legend(options = {}) {
         cls: 'icon-smaller small round grey-lightest',
         style: {
           'vertical-align': 'bottom',
-          'margin-bottom': '8.5px',
-          'margin-top': '-2px'
+          margin: '0.2rem 0'
         },
         icon: '#ic_close_24px',
         state: closeButtonState,
         validStates: ['initial', 'hidden'],
-        ariaLabel: 'Stäng',
+        ariaLabel: localize('close'),
         click() {
           toggleVisibility();
         }
@@ -699,7 +707,7 @@ const Legend = function Legend(options = {}) {
         style: {
           display: 'inline',
           'text-align': 'right',
-          'margin-right': '6px'
+          'margin-right': '0.1rem'
         },
         components: legendControlCmps
       });
@@ -712,7 +720,7 @@ const Legend = function Legend(options = {}) {
           'background-color': '#fff',
           'border-top': '1px solid #dbdbdb',
           'border-radius': '0.5rem',
-          'padding-bottom': '6px'
+          'line-height': '0'
         },
         components: baselayerCmps
       });
@@ -724,7 +732,7 @@ const Legend = function Legend(options = {}) {
         components: mainContainerComponents,
         style: {
           'max-height': `${maxHeight}px`,
-          width: 'min-content'
+          'min-width': '220px'
         }
       });
 
@@ -742,7 +750,7 @@ const Legend = function Legend(options = {}) {
       const layerButtonCls = isExpanded ? ' faded' : '';
       layerButton = Button({
         icon: '#ic_layers_24px',
-        tooltipText: 'Lager',
+        tooltipText: localize('layer'),
         tooltipPlacement: 'west',
         cls: `control icon-small medium round absolute light bottom-right${layerButtonCls}`,
         click() {
