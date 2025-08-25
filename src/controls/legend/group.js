@@ -1,5 +1,7 @@
 import { Component, Button, Collapse, CollapseHeader, dom } from '../../ui';
 import GroupList from './grouplist';
+import createMoreInfoButton from './moreinfobutton';
+import LayerProperties from './overlayproperties';
 
 /**
  * The Group component can be a group or a subgroup,
@@ -16,13 +18,19 @@ const Group = function Group(viewer, options = {}) {
     name,
     parent,
     abstract,
+    showAbstractInLegend = false,
     position = 'top',
     type = 'group',
     autoExpand = true,
     exclusive = false,
     toggleAll = true,
     draggable = false,
-    zIndexStart = 0.1
+    zIndexStart = 0.1,
+    opacityControl = false,
+    removable = false,
+    zoomToExtent = false,
+    description,
+    localization
   } = options;
 
   const stateCls = {
@@ -32,13 +40,16 @@ const Group = function Group(viewer, options = {}) {
   };
   const checkIcon = '#ic_check_circle_24px';
   const uncheckIcon = '#ic_radio_button_unchecked_24px';
+  const draggableGroups = [];
   let visibleState = 'all';
   let groupEl;
   let selectedItem;
 
   const listCls = type === 'grouplayer' ? 'divider-start padding-left padding-top-small' : '';
-  const groupList = GroupList({ viewer, cls: listCls, abstract });
+  const groupList = GroupList({ viewer, cls: listCls, abstract, showAbstractInLegend });
   visibleState = groupList.getVisible();
+
+  const thisGroup = viewer.getGroup(name);
 
   const getEl = () => groupEl;
 
@@ -65,10 +76,12 @@ const Group = function Group(viewer, options = {}) {
     iconCls: '',
     state: visibleState,
     style: {
-      'align-self': 'flex-end',
+      'align-self': 'center',
       cursor: 'pointer'
     }
   }) : false;
+
+  const moreInfoButton = (opacityControl || removable || zoomToExtent || description || (abstract && !showAbstractInLegend)) ? createMoreInfoButton({ viewer, group: thisGroup, localization }) : false;
 
   const SubGroupHeader = function SubGroupHeader() {
     const expandButton = Button({
@@ -86,6 +99,9 @@ const Group = function Group(viewer, options = {}) {
         if (tickButton) {
           this.addComponent(tickButton);
         }
+        if (moreInfoButton) {
+          this.addComponent(moreInfoButton);
+        }
       },
       onRender() {
         this.dispatch('render');
@@ -99,12 +115,14 @@ const Group = function Group(viewer, options = {}) {
         });
       },
       render() {
-        return `<div class="flex row align-center padding-left text-smaller pointer collapse-header" style="width: 100%; padding-right: 1.875rem">
-                <div id="${this.getId()}" class="flex row align-center grow">
+        const padding = moreInfoButton ? '0.275rem' : '1.875rem';
+        return `<div class="flex row align-center padding-left text-smaller pointer collapse-header item wrap" style="width: 100%; padding-right: ${padding}">
+                <div id="${this.getId()}" class="flex row align-center grow basis-0">
                    ${expandButton.render()}
-                    <span class="grow padding-x-small" style="word-break: break-all;">${title}</span>
+                    <span class="grow padding-x-small" style="overflow-wrap: anywhere;">${title}</span>
                 </div>
                 ${tickButton ? tickButton.render() : ''}
+                ${moreInfoButton ? moreInfoButton.render() : ''}
               </div>`;
       }
     });
@@ -112,10 +130,18 @@ const Group = function Group(viewer, options = {}) {
 
   const GroupHeader = function GroupHeader() {
     const headerComponent = CollapseHeader({
-      cls: 'hover padding-x padding-y-small grey-lightest border-bottom text-small',
+      cls: 'hover padding-x padding-y-small grey-lightest border-bottom text-small sticky bg-white z-index-low item wrap',
+      style: `top: 0;${moreInfoButton ? 'padding-right: 0.275rem' : ''}`,
       icon,
       title
     });
+    if (moreInfoButton) {
+      headerComponent.on('render', function hcRender() {
+        const el = document.getElementById(this.getId());
+        const html = moreInfoButton.render();
+        el.insertAdjacentHTML('beforeend', html);
+      });
+    }
     return headerComponent;
   };
 
@@ -129,9 +155,13 @@ const Group = function Group(viewer, options = {}) {
     collapseX: false
   });
 
+  if (moreInfoButton && type !== 'grouplayer') {
+    collapse.addComponent(moreInfoButton);
+  }
+
   const addGroup = function addGroup(groupCmp) {
     groupList.addGroup(groupCmp);
-    this.dispatch('add:group');
+    this.dispatch('add:group', groupCmp);
   };
 
   const appendGroup = function appendGroup(targetCmp) {
@@ -169,10 +199,32 @@ const Group = function Group(viewer, options = {}) {
   };
 
   function orderZIndex(list, groupCmp) {
-    const elementIds = [...list.children].map(x => x.id).reverse();
-    const overlayArray = groupCmp.getOverlayList().getOverlays();
-    overlayArray.forEach(element => {
-      const layerIndex = 1 + elementIds.indexOf(element.getId());
+    const layerArr = [];
+
+    function recList(listEl, grpCmp) {
+      const elementIds = [...listEl.children].map(x => x.id).reverse();
+      const overlayArray = grpCmp.getOverlayList().getOverlays();
+      const groupArray = grpCmp.getOverlayList().getGroups();
+      elementIds.forEach(element => {
+        const foundLayer = overlayArray.find((overlay) => element === overlay.getId());
+        if (foundLayer) {
+          layerArr.push(foundLayer);
+        } else {
+          const foundGroup = groupArray.find((group) => element === group.getId());
+          if (foundGroup) {
+            const ulList = document.getElementById(foundGroup.getId())?.getElementsByTagName('ul')[0];
+            if (ulList) {
+              recList(ulList, foundGroup);
+            }
+          }
+        }
+      });
+    }
+
+    recList(list, groupCmp);
+
+    layerArr.forEach((element, idx) => {
+      const layerIndex = idx;
       element.getLayer().setZIndex(zIndexStart + (layerIndex / 100));
     });
   }
@@ -214,11 +266,13 @@ const Group = function Group(viewer, options = {}) {
 
   function enableDragItem(el, groupCmp) {
     const item = el;
-    item.setAttribute('draggable', true);
-    item.ondragstart = handleDragStart;
-    item.ondragenter = handleDragEnter;
-    item.ondragover = handleDragOver;
-    item.ondragend = (evt) => { handleDragEnd(evt, groupCmp); };
+    if (item) {
+      item.setAttribute('draggable', true);
+      item.ondragstart = handleDragStart;
+      item.ondragenter = handleDragEnter;
+      item.ondragover = handleDragOver;
+      item.ondragend = (evt) => { handleDragEnd(evt, groupCmp); };
+    }
   }
 
   return Component({
@@ -260,11 +314,20 @@ const Group = function Group(viewer, options = {}) {
           enableDragItem(el, this);
         }
       });
-      this.on('add:group', () => {
+      this.on('add:group', (group) => {
         visibleState = groupList.getVisible();
         if (tickButton) {
           tickButton.setState(stateCls[visibleState]);
           tickButton.setIcon(getCheckIcon(visibleState));
+        }
+        if (draggable && typeof group.getId === 'function') {
+          const groupId = group.getId();
+          const el = document.getElementById(groupId);
+          if (el) {
+            enableDragItem(el, this);
+          } else {
+            draggableGroups.push(groupId);
+          }
         }
       });
 
@@ -311,6 +374,7 @@ const Group = function Group(viewer, options = {}) {
       }
     },
     onRender() {
+      draggableGroups.forEach(grp => enableDragItem(document.getElementById(grp), this));
       groupEl = document.getElementById(collapse.getId());
       if (viewer.getControlByName('legend').getuseGroupIndication() && type === 'group') {
         updateGroupIndication();
@@ -321,6 +385,40 @@ const Group = function Group(viewer, options = {}) {
           e.preventDefault();
           e.stopPropagation();
           updateGroupIndication();
+        });
+      }
+      if (moreInfoButton) {
+        groupEl.addEventListener('overlayproperties', (evt) => {
+          const overlaysCmp = viewer.getControlByName('legend').getOverlays();
+          const slidenav = overlaysCmp.slidenav;
+          if (evt.detail.group) {
+            const group = evt.detail.group;
+            const thisParent = this;
+            const label = group.labelOpacitySlider ? group.labelOpacitySlider : '';
+            const layerProperties = LayerProperties({
+              group, viewer, thisParent, labelOpacitySlider: label, localization
+            });
+            slidenav.setSecondary(layerProperties);
+            slidenav.slideToSecondary();
+            // Include back btn and opacity slider in tab order when opened and remove when closed
+            const secondaryEl = document.getElementById(slidenav.getId()).querySelector('.secondary');
+            const backBtn = secondaryEl.getElementsByTagName('button')[0];
+            const opacityInput = secondaryEl.getElementsByTagName('input')[0];
+            backBtn.tabIndex = 0;
+            backBtn.focus();
+            if (opacityInput) {
+              opacityInput.tabIndex = 0;
+            }
+            backBtn.addEventListener('click', () => {
+              backBtn.tabIndex = -99;
+              if (opacityInput) {
+                opacityInput.tabIndex = -99;
+              }
+            }, false);
+            slidenav.on('slide', () => {
+              groupEl.classList.remove('width-100');
+            });
+          }
         });
       }
       // only listen to tick changes for subgroups

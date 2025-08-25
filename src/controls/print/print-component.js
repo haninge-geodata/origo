@@ -7,7 +7,7 @@ import TileWMSSource from 'ol/source/TileWMS';
 import TileGrid from 'ol/tilegrid/TileGrid';
 import { Group } from 'ol/layer';
 import {
-  Button, Component, cuid, dom
+  Button, Component, cuid, dom, Element as El
 } from '../../ui';
 import pageTemplate from './page.template';
 import PrintMap from './print-map';
@@ -51,7 +51,9 @@ const PrintComponent = function PrintComponent(options = {}) {
     mapInteractionsActive,
     supressResolutionsRecalculation,
     suppressNewDPIMethod,
-    settingsExpanded
+    settingsExpanded,
+    localize,
+    localeId
   } = options;
 
   let {
@@ -226,7 +228,7 @@ const PrintComponent = function PrintComponent(options = {}) {
   };
 
   const created = function created() {
-    return showCreated ? `${createdPrefix}${today.toLocaleDateString()} ${today.toLocaleTimeString()}` : '';
+    return showCreated ? `${createdPrefix}${today.toLocaleDateString(localeId)} ${today.toLocaleTimeString(localeId)}` : '';
   };
 
   const titleComponent = Component({
@@ -253,6 +255,10 @@ const PrintComponent = function PrintComponent(options = {}) {
 
   const printMapComponent = PrintMap({ logo, northArrow, map, viewer, showNorthArrow, printLegend, showPrintLegend });
 
+  const centerComponent = El({ cls: 'flex column align-start absolute center-center transparent z-index-ontop-middle' });
+  const printMapSpinner = El({ cls: 'print-map-loading-spinner' });
+  centerComponent.addComponent(printMapSpinner);
+
   const closeButton = Button({
     cls: 'fixed top-right medium round icon-smaller light box-shadow z-index-ontop-high',
     icon: '#ic_close_24px',
@@ -267,7 +273,8 @@ const PrintComponent = function PrintComponent(options = {}) {
     titleComponent,
     descriptionComponent,
     createdComponent,
-    closeButton
+    closeButton,
+    constrainResolution: view.getConstrainResolution()
   });
 
   const setScale = function setScale(scale) {
@@ -329,20 +336,25 @@ const PrintComponent = function PrintComponent(options = {}) {
     showPrintLegend,
     rotation,
     rotationStep,
-    viewerResolutions: originalResolutions
+    viewerResolutions: originalResolutions,
+    localize
   });
-  const printInteractionToggle = PrintInteractionToggle({ map, target, mapInteractionsActive, pageSettings: viewer.getViewerOptions().pageSettings });
+  const printInteractionToggle = PrintInteractionToggle({ map, target, mapInteractionsActive, pageSettings: viewer.getViewerOptions().pageSettings, localize });
 
-  const printToolbar = PrintToolbar();
+  const printToolbar = PrintToolbar({
+    localize
+  });
 
   let mapLoadListenRefs;
 
   function disablePrintToolbar() {
     printToolbar.setDisabled(true);
+    document.querySelector(`#${printMapSpinner.getId()}`).style.display = '';
   }
 
   function enablePrintToolbar() {
     printToolbar.setDisabled(false);
+    document.querySelector(`#${printMapSpinner.getId()}`).style.display = 'none';
   }
 
   function updateScaleOnMove() {
@@ -700,6 +712,7 @@ const PrintComponent = function PrintComponent(options = {}) {
             </div>
           </div>
         </div>
+        ${centerComponent.render()}
         <div id="o-print-tools-left" class="top-left fixed no-print flex column spacing-vertical-small z-index-ontop-top height-full">
           ${extraPrintControls.map(control => control.renderForPrintControl()).join(`
           `)}

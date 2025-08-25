@@ -39,6 +39,18 @@ export const findStyleType = function findStyleType(styles) {
     return 'Line';
   } else if (styleTypes.circle) {
     return 'Circle';
+  } else if (styleTypes.square) {
+    return 'Square';
+  } else if (styleTypes.triangle) {
+    return 'Triangle';
+  } else if (styleTypes.star) {
+    return 'Star';
+  } else if (styleTypes.pentagon) {
+    return 'Pentagon';
+  } else if (styleTypes.cross) {
+    return 'Cross';
+  } else if (styleTypes.x) {
+    return 'X';
   } else if (styleTypes.icon) {
     return 'Icon';
   } else if (styleTypes.image) {
@@ -86,7 +98,7 @@ export const renderSvgIcon = function renderSvgIcon(styleRule, {
   if (styleType in renderIcon) {
     if (styleType === 'Polygon') {
       const polygonOptions = styleRule.find(style => style.fill);
-      const icon = renderIcon.Circle({
+      const icon = renderIcon.Polygon({
         fill: polygonOptions.fill,
         stroke: polygonOptions.stroke
       });
@@ -94,7 +106,7 @@ export const renderSvgIcon = function renderSvgIcon(styleRule, {
     } else if (styleType === 'Line') {
       const icon = styleRule.reduce((prev, style) => {
         if (style.stroke) {
-          return prev + renderIcon.Circle({
+          return prev + renderIcon.Line({
             stroke: style.stroke
           });
         }
@@ -110,6 +122,54 @@ export const renderSvgIcon = function renderSvgIcon(styleRule, {
         return prev;
       }, '');
       return `${renderSvg(icon, { opacity, size: circleSize })}`;
+    } else if (styleType === 'Square') {
+      const icon = styleRule.reduce((prev, style) => {
+        if (style.square) {
+          return prev + renderIcon.Square(style.square);
+        }
+        return prev;
+      }, '');
+      return `${renderSvg(icon, { opacity })}`;
+    } else if (styleType === 'Triangle') {
+      const icon = styleRule.reduce((prev, style) => {
+        if (style.triangle) {
+          return prev + renderIcon.Triangle(style.triangle);
+        }
+        return prev;
+      }, '');
+      return `${renderSvg(icon, { opacity })}`;
+    } else if (styleType === 'Star') {
+      const icon = styleRule.reduce((prev, style) => {
+        if (style.star) {
+          return prev + renderIcon.Star(style.star);
+        }
+        return prev;
+      }, '');
+      return `${renderSvg(icon, { opacity })}`;
+    } else if (styleType === 'Pentagon') {
+      const icon = styleRule.reduce((prev, style) => {
+        if (style.pentagon) {
+          return prev + renderIcon.Pentagon(style.pentagon);
+        }
+        return prev;
+      }, '');
+      return `${renderSvg(icon, { opacity })}`;
+    } else if (styleType === 'Cross') {
+      const icon = styleRule.reduce((prev, style) => {
+        if (style.cross) {
+          return prev + renderIcon.Cross(style.cross);
+        }
+        return prev;
+      }, '');
+      return `${renderSvg(icon, { opacity })}`;
+    } else if (styleType === 'X') {
+      const icon = styleRule.reduce((prev, style) => {
+        if (style.x) {
+          return prev + renderIcon.X(style.x);
+        }
+        return prev;
+      }, '');
+      return `${renderSvg(icon, { opacity })}`;
     } else if (styleType === 'Text') {
       const textOptions = styleRule.find(style => style.text);
       const icon = renderIcon.Text(textOptions.text);
@@ -162,6 +222,8 @@ function updateLayer(layer, viewer) {
 async function setIcon(src, cmp, styleRules, layer, viewer, clickable) {
   const styleName = layer.get('styleName');
   const style = viewer.getStyle(styleName);
+  const activeThemes = layer.get('activeThemes');
+  const hasThemeLegend = layer.get('hasThemeLegend');
   if (!style[0].thematic) {
     style[0].thematic = [];
     const paramsString = src.icon.json;
@@ -180,9 +242,14 @@ async function setIcon(src, cmp, styleRules, layer, viewer, clickable) {
           label: row.title || row.name,
           visible: row.visible !== false
         });
+        if (activeThemes && hasThemeLegend) {
+          const lastItem = style[0].thematic[style[0].thematic.length - 1];
+          lastItem.visible = activeThemes.includes(row.name || row.title);
+        }
       }
     });
     viewer.setStyle(styleName, style);
+    updateLayer(layer, viewer);
   }
   const cmps = [];
   for (let index = 0; index < style[0].thematic.length; index += 1) {
@@ -247,6 +314,16 @@ export const Legend = function Legend({
       styleName = layer.get('styleName');
     }
     const thematicStyling = layer.get('thematicStyling');
+    const activeThemes = layer.get('activeThemes');
+    if (activeThemes) {
+      const style = viewer.getStyles()[styleName];
+      if (layer.get('type') !== 'WMS') {
+        for (let i = 0; i < style.length; i += 1) {
+          const combinedStr = style[i][0].id?.toString() || style[i][0].label?.toString();
+          style[i][0].visible = activeThemes.includes(combinedStr);
+        }
+      }
+    }
     let cmps = [];
     styleRules.forEach((rule, index) => {
       if (Array.isArray(rule)) {
