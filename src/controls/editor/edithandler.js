@@ -10,7 +10,7 @@ import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import { squaredDistance, toFixed } from 'ol/math';
 import { Button, Element as El, Modal, Component } from '../../ui';
-import Infowindow from '../../components/infowindow';
+import FloatingPanel from '../../ui/floatingpanel';
 import store from './editsstore';
 import generateUUID from '../../utils/generateuuid';
 import transactionHandler from './transactionhandler';
@@ -59,7 +59,7 @@ let allowEditGeometry;
 /** List that tracks the state when editing related tables */
 let breadcrumbs = [];
 let autoCreatedFeature = false;
-let infowindowCmp = false;
+let floatingPanelCmp = false;
 let preselectedFeature;
 let traceHighligtLayer;
 let snapTolerance;
@@ -670,7 +670,7 @@ function setInteractions(drawType) {
   hasDraw = false;
   select = new Select({
     layers: [editLayer],
-    multi: !!infowindowCmp
+    multi: !!floatingPanelCmp
   });
   // Dispatch Component event when selection changes. 'change' is never emitted from Collection, so it's both 'add' and 'remove'.
   // select interaction's 'select' event is not fired when the feature collection is manipulated manually, so we take events from
@@ -683,8 +683,8 @@ function setInteractions(drawType) {
     const featureArray = select.getFeatures().getArray();
     component.dispatch('select', featureArray);
   });
-  if (infowindowCmp) {
-    infowindowCmp.close();
+  if (floatingPanelCmp) {
+    floatingPanelCmp.hide();
     select.on('select', () => {
       if (select.getFeatures().getLength() > 1) {
         const featureListAttributes = editLayer.get('featureListAttributes');
@@ -714,14 +714,14 @@ function setInteractions(drawType) {
             click() {
               select.getFeatures().clear();
               select.getFeatures().push(feature);
-              infowindowCmp.dispatch('resetButtonStates');
-              infowindowCmp.dispatch('removeMouseenter');
+              floatingPanelCmp.dispatch('resetButtonStates');
+              floatingPanelCmp.dispatch('removeMouseenter');
               this.setState('active');
             },
             mouseenter() {
               select.getFeatures().clear();
               select.getFeatures().push(feature);
-              infowindowCmp.dispatch('resetButtonStates');
+              floatingPanelCmp.dispatch('resetButtonStates');
               this.setState('active');
             }
           });
@@ -730,13 +730,13 @@ function setInteractions(drawType) {
             components: [featureButton]
           });
           listCmp.push(listItem);
-          infowindowCmp.on('resetButtonStates', () => {
+          floatingPanelCmp.on('resetButtonStates', () => {
             featureButton.setState('initial');
             if (document.getElementById(featureButton.getId())) {
               document.getElementById(featureButton.getId()).blur();
             }
           });
-          infowindowCmp.on('removeMouseenter', () => {
+          floatingPanelCmp.on('removeMouseenter', () => {
             featureButton.dispatch('removeMouseenter');
           });
         });
@@ -744,9 +744,10 @@ function setInteractions(drawType) {
           tagName: 'ul',
           components: listCmp
         });
-        infowindowCmp.changeContent(content);
+        floatingPanelCmp.changeContent(content);
+        floatingPanelCmp.show();
       } else {
-        infowindowCmp.close();
+        floatingPanelCmp.hide();
       }
     });
   }
@@ -1088,8 +1089,8 @@ function onAttributesSave(features, attrs) {
           // No other validation is performed on searchList as the only thing that can be checked now is that value is in list
           // and that is handled inside the searchList itself.
           editEl[attribute.name] = attribute.searchList.getValue();
-        } else if (attribute.type === 'image') {
-          // File input's value is the filename, but the image itself is stored in the model
+        } else if (attribute.type === 'image' || attribute.type === 'audio' || attribute.type === 'video') {
+          // File input's value is the filename, but the media itself is stored in the model
           editEl[attribute.name] = attribute.val;
         } else { // Read value from input text, textarea or select
           editEl[attribute.name] = inputValue;
@@ -1212,6 +1213,26 @@ function onAttributesSave(features, attrs) {
         case 'image':
           valid.image = validate.image(inputValue) || inputValue === '' ? inputValue : false;
           if (!valid.image && inputValue !== '') {
+            if (!errorMsg) {
+              errorOn.insertAdjacentHTML('afterend', `<div class="o-${inputId} errorMsg fade-in padding-bottom-small">${errorText}</div>`);
+            }
+          } else if (errorMsg) {
+            errorMsg.remove();
+          }
+          break;
+        case 'audio':
+          valid.audio = validate.audio(inputValue) || inputValue === '' ? inputValue : false;
+          if (!valid.audio && inputValue !== '') {
+            if (!errorMsg) {
+              errorOn.insertAdjacentHTML('afterend', `<div class="o-${inputId} errorMsg fade-in padding-bottom-small">${errorText}</div>`);
+            }
+          } else if (errorMsg) {
+            errorMsg.remove();
+          }
+          break;
+        case 'video':
+          valid.video = validate.video(inputValue) || inputValue === '' ? inputValue : false;
+          if (!valid.video && inputValue !== '') {
             if (!errorMsg) {
               errorOn.insertAdjacentHTML('afterend', `<div class="o-${inputId} errorMsg fade-in padding-bottom-small">${errorText}</div>`);
             }
@@ -1348,6 +1369,122 @@ function addImageListener() {
 }
 
 /**
+ * Returns a function that adds an event handler to read an audio file when user selects a file.
+ *
+ * @function
+ * @name addAudioListener
+ * @kind function
+ * @param {any} ): (obj
+ * @returns {void}
+ */
+function addAudioListener() {
+  const fn = (obj) => {
+    const fileReader = new FileReader();
+    const containerElement = document.getElementsByClassName(`.${obj.elId}`);
+
+    if (!containerElement) return;
+    const inputElement = document.querySelector(`.${obj.elId} > input[type='file']`);
+    const inputUrlElement = document.querySelector(`.${obj.elId} > input[type='url']`);
+    const audioElement = document.querySelector(`.${obj.elId} > audio:first-of-type`);
+    const buttonElement = document.querySelector(`.${obj.elId} > input[type='button']`);
+
+    inputElement.addEventListener('change', (ev) => {
+      if (ev.target.files && ev.target.files[0]) {
+        audioElement.classList.remove('o-hidden');
+        buttonElement.classList.remove('o-hidden');
+        fileReader.onload = (e) => {
+          audioElement.src = e.target.result;
+          // eslint-disable-next-line no-param-reassign
+          obj.val = e.target.result;
+        };
+        fileReader.readAsDataURL(ev.target.files[0]);
+      }
+    });
+    inputUrlElement.addEventListener('input', () => {
+      audioElement.classList.remove('o-hidden');
+      buttonElement.classList.remove('o-hidden');
+      audioElement.src = inputUrlElement.value;
+      // eslint-disable-next-line no-param-reassign
+      obj.val = inputUrlElement.value;
+    });
+
+    // Find the remove button and attach event handler.
+    buttonElement.addEventListener('click', (e) => {
+      // Clear the filename
+      document.getElementById(obj.elId).value = '';
+      // Also clear the model value
+      // eslint-disable-next-line no-param-reassign
+      obj.val = '';
+      inputElement.value = '';
+      inputUrlElement.value = '';
+      audioElement.classList.add('o-hidden');
+      buttonElement.classList.add('o-hidden');
+      e.target.classList.add('o-hidden');
+    });
+  };
+
+  return fn;
+}
+
+/**
+ * Returns a function that adds an event handler to read an video file when user selects a file.
+ *
+ * @function
+ * @name addVideoListener
+ * @kind function
+ * @param {any} ): (obj
+ * @returns {void}
+ */
+function addVideoListener() {
+  const fn = (obj) => {
+    const fileReader = new FileReader();
+    const containerElement = document.getElementsByClassName(`.${obj.elId}`);
+
+    if (!containerElement) return;
+    const inputElement = document.querySelector(`.${obj.elId} > input[type='file']`);
+    const inputUrlElement = document.querySelector(`.${obj.elId} > input[type='url']`);
+    const videoElement = document.querySelector(`.${obj.elId} > video:first-of-type`);
+    const buttonElement = document.querySelector(`.${obj.elId} > input[type='button']`);
+
+    inputElement.addEventListener('change', (ev) => {
+      if (ev.target.files && ev.target.files[0]) {
+        videoElement.classList.remove('o-hidden');
+        buttonElement.classList.remove('o-hidden');
+        fileReader.onload = (e) => {
+          videoElement.src = e.target.result;
+          // eslint-disable-next-line no-param-reassign
+          obj.val = e.target.result;
+        };
+        fileReader.readAsDataURL(ev.target.files[0]);
+      }
+    });
+    inputUrlElement.addEventListener('input', () => {
+      videoElement.classList.remove('o-hidden');
+      buttonElement.classList.remove('o-hidden');
+      videoElement.src = inputUrlElement.value;
+      // eslint-disable-next-line no-param-reassign
+      obj.val = inputUrlElement.value;
+    });
+
+    // Find the remove button and attach event handler.
+    buttonElement.addEventListener('click', (e) => {
+      // Clear the filename
+      document.getElementById(obj.elId).value = '';
+      // Also clear the model value
+      // eslint-disable-next-line no-param-reassign
+      obj.val = '';
+      inputElement.value = '';
+      inputUrlElement.value = '';
+      videoElement.classList.add('o-hidden');
+      buttonElement.classList.add('o-hidden');
+      e.target.classList.add('o-hidden');
+    });
+  };
+
+  return fn;
+}
+
+/**
  * Returns a click handler that should be attached to batch edit checkboxes to show or hide the input field
  * */
 function addBatchEditListener() {
@@ -1454,6 +1591,14 @@ function editAttributes(feat) {
           obj.isVisible = true;
           obj.elId = `input-${currentLayer}-${obj.name}`;
           obj.addListener = addImageListener();
+        } else if (obj.type === 'audio') {
+          obj.isVisible = true;
+          obj.elId = `input-${currentLayer}-${obj.name}`;
+          obj.addListener = addAudioListener();
+        } else if (obj.type === 'video') {
+          obj.isVisible = true;
+          obj.elId = `input-${currentLayer}-${obj.name}`;
+          obj.addListener = addVideoListener();
         } else {
           obj.isVisible = true;
           obj.elId = `input-${currentLayer}-${obj.name}`;
@@ -1864,6 +2009,7 @@ export default function editHandler(options, v) {
 
       // Set up a layer for displaying trace possibilities. Do it up front as it may become possible to turn it on later
       traceHighligtLayer = new VectorLayer({
+        group: 'none',
         source: new VectorSource(),
         style: {
           'stroke-color': 'rgba(100, 255, 0, 1)',
@@ -1881,8 +2027,8 @@ export default function editHandler(options, v) {
 
       featureInfo = viewer.getControlByName('featureInfo');
       if (options.featureList) {
-        infowindowCmp = Infowindow({ viewer, type: 'floating', title: 'Välj objekt' });
-        infowindowCmp.render();
+        floatingPanelCmp = FloatingPanel({ viewer, type: 'floating', title: 'Välj objekt' });
+        floatingPanelCmp.render();
       }
       currentLayer = options.currentLayer;
       editableLayers = options.editableLayers;
