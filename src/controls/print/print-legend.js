@@ -52,6 +52,38 @@ const LayerRow = function LayerRow(options) {
   };
 
   /**
+   * Return the type of OGC server used in a layer's source
+   *
+   * @param {layer} layer 
+   * @returns {Promise<string>}
+   */
+  const getSourceType = function getSourceType(layer) {
+    const mapSource = viewer.getMapSource();
+    const sourceName = layer.get('sourceName');
+    const source = layer.getSource();
+    const url = source instanceof ImageWMS || source instanceof ImageArcGISRest ? source.getUrl() : source.getUrls()[0];
+
+    if ((typeof mapSource[sourceName].type === 'string' && mapSource[sourceName].type === 'Geoserver') || url.includes('geoserver')) {
+      return 'Geoserver';
+    } else if ((typeof mapSource[sourceName].type === 'string' && mapSource[sourceName].type === 'QGIS') || url.includes('qgis')) {
+      return 'QGIS';
+    } else if ((typeof mapSource[sourceName].type === 'string' && mapSource[sourceName].type === 'ArcGIS') || source instanceof TileArcGISRest || source instanceof ImageArcGISRest || layer.getProperties().type === 'AGS_MAP') {
+      return 'ArcGIS';
+    }
+    return 'Unknown source type';
+  };
+
+  /**
+   * Helper that creates a WMS getLegendGraphics request url string
+   * @param {any} url base url
+   * @param {any} layerName name of layer to create legend for
+   * @param {any} format valid mime type
+   * @param {string} sourceType The server type used by the source, "Geoserver", "QGIS" or "ArcGIS".
+   * @returns {string} A WMS getLegendGraphics request url string
+   */
+  const createGetlegendGrapicUrl = (url, layerName, format, sourceType) => `${url}?SERVICE=WMS&layer=${layerName}&format=${format}&version=1.1.1&request=getLegendGraphic${sourceType === 'QGIS' ? '&DPI=192' : '&scale=401&legend_options=dpi:300'}`;
+
+  /**
    * Returns the URL to the WMS legend in the specified format
    *
    * @param {Layer} aLayer
@@ -68,8 +100,7 @@ const LayerRow = function LayerRow(options) {
       }
       return `${style[0][0].icon.src}?format=${format}`;
     }
-    const filterType = viewer.getMapSource()[aLayer.getProperties().sourceName]?.filterType;
-    return `${url}?SERVICE=WMS&layer=${layerName}&format=${format}&version=1.1.1&request=getLegendGraphic${filterType === 'qgis' ? '&DPI=192' : '&scale=401&legend_options=dpi:300'}`;
+    return createGetlegendGrapicUrl(url, layerName, format, getSourceType(aLayer));
   };
 
   /**
@@ -207,24 +238,61 @@ const LayerRow = function LayerRow(options) {
         </div>`;
     }
 
-    const filterType = viewer.getMapSource()[layer.getProperties().sourceName]?.filterType;
-    const legendRules = filterType === 'qgis' ? (json.nodes[0].symbols || json.nodes) : json.Legend[0].rules;
-    if (legendRules?.length <= 1) {
-      const icon = `<img class="cover" src="${filterType === 'qgis' ? `${getLegendGraphicUrl}&rule=${encodeURIComponent(legendRules?.[0].title)}&width=${printLegendQgisItemWidth}&height=${printLegendQgisItemHeight}` : getLegendGraphicUrl}"  alt="${title}"/>`;
-      return getTitleWithIcon(title, icon);
-    }
+    const sourceType = getSourceType(layer);
+    const sourceRules = sourceType === 'QGIS' ? json.nodes : json.Legend;
+    const rules = [];
+    const layerName = layer.get('id');
+    const isLayerGroup = sourceRules.length > 1;
+    // Loop all layers in json response. Usually there is only one, but Layer Groups have several.
+    sourceRules.forEach(currLayer => {
+      let currLayerName = currLayer.layerName;
+      let currLayerRules = sourceType === 'QGIS' ? (currLayer.symbols || [currLayer]) : currLayer.rules;
+      currLayerRules.forEach((currRule, index) => {
+        if (!(layer.get('thematicStyling')) || thematicStyle[0]?.thematic[index]?.visible) {
+          let ruleImageUrl;
+          if (sourceType !== 'QGIS') {
+            let layerImageUrl;
+            if (isLayerGroup) {
+              // This is layer group and the contained layer is most likely not known to us,
+              // so we can't treat is as an Origo layer.
+              // Generate a request and hope that the server has a layer by that name.
+              const baseUrl = getOneUrl(layer);
+              const layerWs = layerName.split(':');
+              if (layerWs.length > 1) {
+                currLayerName = `${layerWs[0]}:${currLayer.layerName}`;
+              }
+              // This is a little bit shaky, if Layer Group name constains workspace, contained layers must come from
+              // the same workspace, but if layer group is a top level layer group (no workspace), contained layers can
+              // come from any workspace but the json response NEVER contains info about workspace.
+              // So for Layer Groups with a workspace prefix we can assume that the actual layers should have the same workspace prefix,
+              // but for top level Layer Groups we have absolutely no idea which workspace the layer is in.
+              // But not all is lost as Geoserver tries its best to get the legend for any workspace with that layer name.
+              // Problem is when the same layer name appears in several workspaces. In that case you get from what is configured as default.
+              // One more tricky thing is that layer groups can configure different symbols than the actual layer.
+              // Querying the layer Group for png will return the group layer style, but the getLegendGrapich for each layer
+              // will return the symbol for the actual layer, so legend and print legend will differ.
+              layerImageUrl = createGetlegendGrapicUrl(baseUrl, currLayerName, 'image/png');
+            } else {
+              layerImageUrl = getLegendGraphicUrl;
+            }
+            ruleImageUrl = `${layerImageUrl}`;
+            // Add specific rule if necessary. If there is only one rule there is no need (in fact it will probably break as most
+            // styles using only one rule will not have a named rule). This is to handle Layer Groups without rules in some of the contained
+            // layer's style
+            if (currLayerRules.length > 1) {
+              ruleImageUrl += `&rule=${sourceType === 'QGIS' ? `${encodeURIComponent(currRule.title)}&width=${printLegendQgisItemWidth}&height=${printLegendQgisItemHeight}` : currRule.name}`;
+            }
+          // QGIS Server includes the icon as binary in the JSON response
+          } else {
+            ruleImageUrl = `data:image/png;base64,${currRule.icon}`;
+          }
+          const rowTitle = currRule.title ? currRule.title : index + 1;
+          rules.push(getListItem(rowTitle, ruleImageUrl, true));
+        }
+      });
+    });
 
-    const thematicStyle = (layer.get('thematicStyling') === true) ? viewer.getStyle(layer.get('styleName')) : undefined;
-    const rules = legendRules.reduce((okRules, rule, index) => {
-      if (!(layer.get('thematicStyling')) || thematicStyle[0]?.thematic[index]?.visible) {
-        const ruleImageUrl = `${getLegendGraphicUrl}&rule=${filterType === 'qgis' ? `${encodeURIComponent(rule.title)}&width=${printLegendQgisItemWidth}&height=${printLegendQgisItemHeight}` : rule.name}`;
-        const rowTitle = rule.title ? rule.title : index + 1;
-        okRules.push(getListItem(rowTitle, ruleImageUrl, true));
-      }
-      return okRules;
-    }, []);
-
-    return getTitleWithChildren(title, rules);
+    return (rules.length === 1) ? rules[0] : getTitleWithChildren(title, rules);
   };
 
   /**
@@ -292,8 +360,9 @@ const LayerRows = function LayerRows(options) {
       });
       const layerListCmp = Component({
         async render() {
-          const content = await overlayEls.reduce(async (acc, item) => await acc + await item.render(), '');
-          return `<ul id="${this.getId()}" class="list">${content}</ul>`;
+          const rowPromises = overlayEls.map((item) => item.render());
+          const rows = await Promise.all(rowPromises);
+          return `<ul id="${this.getId()}" class="list">${rows.reverse().join('')}</ul>`;
         }
       });
       return `
