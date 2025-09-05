@@ -91,12 +91,12 @@ const LayerRow = function LayerRow(options) {
   const getWMSLegendUrl = (aLayer, format) => {
     const url = getOneUrl(aLayer);
     const layerName = aLayer.get('name');
-    const style = viewer.getStyle(aLayer.get('styleName'));
-    if (style && style[0] && style[0][0] && style[0][0].icon) {
-      if (style[0][0].icon.src.includes('?')) {
-        return `${style[0][0].icon.src}&format=${format}`;
+    const style = viewer.getStyle(aLayer.get('styleName'))?.find((rule) => rule.find((item) => item.extendedLegend))?.[0];
+    if (style?.icon) {
+      if (style.icon.src.includes('?')) {
+        return `${style.icon.src}&format=${format}`;
       }
-      return `${style[0][0].icon.src}?format=${format}`;
+      return `${style.icon.src}?format=${format}`;
     }
     return createGetlegendGrapicUrl(url, layerName, format, getSourceType(aLayer));
   };
@@ -318,7 +318,8 @@ const LayerRow = function LayerRow(options) {
       const title = layer.get('title') || 'Titel saknas';
       let content = '';
       const style = viewer.getStyle(layer.get('styleName'));
-      if (style && style[0] && (!style[0][0].extendedLegend)) {
+      // If the style does not have an extendedLegend item: generate the legend based on the OpenLayers styles.
+      if (!style?.find((rule) => rule.find((item) => item.extendedLegend))) {
         content = getStyleContent(title, style);
       } else {
         content = getTitleWithIcon(title, '');
