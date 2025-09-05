@@ -25,3 +25,6 @@ export { default as Externalurl } from './controls/externalurl';
 export { default as Scalepicker } from './controls/scalepicker';
 export { default as Localization } from './controls/localization';
 export { default as Help } from './controls/help';
+export { default as Weather } from './controls/weather';
+export { default as Guide } from './controls/guide';
+export { default as Favourites } from './controls/favourites';

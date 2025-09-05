@@ -105,6 +105,25 @@ export default (() => ({
         });
     }
   },
+  readStateFromAdminServer: function readStateFromAdminServer(id) {
+    if (!id) {
+      const throwMessage = 'No map id';
+      throw throwMessage;
+    } else {
+      return fetch(`https://gis.haninge.se/admin-api/favourites/${id}`).then(response => response.json())
+        .then((data) => {
+          const mapObj = {};
+          Object.keys(data.data).forEach(key => {
+            if (permalinkParser[key]) mapObj[key] = permalinkParser[key](data.data[key]);
+            else mapObj[key] = data.data[key];
+          });
+          return mapObj;
+        })
+        .catch(error => {
+          console.error('Error:', error);
+        });
+    }
+  },
   addParamsToGetMapState: function addParamsToGetMapState(key, callback) {
     permalinkStore.AddExternalParams(key, callback);
   }

@@ -46,6 +46,8 @@
 @use 'audio';
 @use 'video';
 @use 'help';
+@use 'guide';
+@use 'favourites';
 
 
 .o-map {
@@ -99,6 +101,8 @@
     @include audio.default;
     @include video.default;
     @include help.default;
+    @include guide.default;
+    @include favourites.default;
 }
 
 html,

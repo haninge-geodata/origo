@@ -1,7 +1,9 @@
-.o-help {
-    align-items: center;
-}
-.o-help span {
-    max-width:25px;
-    min-width:25px;
+@mixin default {
+    .o-help {
+        align-items: center;
+    }
+    .o-help span {
+        max-width:25px;
+        min-width:25px;
+    }
 }
