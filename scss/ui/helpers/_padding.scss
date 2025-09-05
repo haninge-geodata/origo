@@ -95,33 +95,33 @@
 
 // largest padding
 .padding-largest {
-  padding: $padding-largest;
+  padding: variables.$padding-largest;
 }
 
 .padding-top-largest {
-  padding-top: $padding-largest;
+  padding-top: variables.$padding-largest;
 }
 
 .padding-right-largest {
-  padding-right: $padding-largest;
+  padding-right: variables.$padding-largest;
 }
 
 .padding-bottom-largest {
-  padding-bottom: $padding-largest;
+  padding-bottom: variables.$padding-largest;
 }
 
 .padding-left-largest {
-  padding-left: $padding-larger;
+  padding-left: variables.$padding-larger;
 }
 
 .padding-x-largest {
-  padding-left: $padding-largest;
-  padding-right: $padding-largest;
+  padding-left: variables.$padding-largest;
+  padding-right: variables.$padding-largest;
 }
 
 .padding-y-largest {
-  padding-bottom: $padding-largest;
-  padding-top: $padding-largest;
+  padding-bottom: variables.$padding-largest;
+  padding-top: variables.$padding-largest;
 }
 
 // small padding
