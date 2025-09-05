@@ -27,11 +27,13 @@ const Search = function Search(options = {}) {
     northing,
     easting,
     idAttribute,
+    geometryAttribute,
     layerNameAttribute,
     layerName,
     title,
     titleAttribute,
     contentAttribute,
+    l, i, t, c, g,
     groupSuggestions,
     includeSearchableLayers,
     searchableDefault,
@@ -42,7 +44,6 @@ const Search = function Search(options = {}) {
   } = options;
 
   const {
-    geometryAttribute,
     url,
     queryParameterName = 'q',
     autocompletePlacement,
@@ -116,6 +117,8 @@ const Search = function Search(options = {}) {
   }
 
   /** There are several different ways to handle selected search result.
+   * Option X. Feature info is requested from a map service if there is a layer defined, otherwise whatever is in the search result.
+   * Provide l, i, t, c, g as replacements for layerNameAttribute, idAttribute, titleAttribute, contentAttribute and geometryAttribute.
    * Option 1. Feature info is requested from a map service.
    * In this case idAttribute and layerNameAttribute must be provided.
    * A map service is used to get the geometry and attributes. The layer is defined
@@ -138,6 +141,18 @@ const Search = function Search(options = {}) {
     let feature;
     let content;
     let coord;
+    if (l && i && t && c && g) {
+      if (viewer.getLayer(data[l])) {
+        layerNameAttribute = l;
+        idAttribute = i;
+      } else {
+        layerNameAttribute = undefined;
+        idAttribute = undefined;
+        titleAttribute = t;
+        contentAttribute = c;
+        geometryAttribute = g;
+      }
+    }
     if (layerNameAttribute && idAttribute) {
       // This is option 1 above
       // The search endpoint has only returned a layer name and a feature id. We must get the actual feature to get the geometry and
@@ -283,6 +298,18 @@ const Search = function Search(options = {}) {
     ids.forEach((id) => {
       const item = data[id];
       let typeTitle;
+      if (l && i && t && c && g) {
+        if (viewer.getLayer(data[l])) {
+          layerNameAttribute = l;
+          idAttribute = i;
+        } else {
+          layerNameAttribute = undefined;
+          idAttribute = undefined;
+          titleAttribute = t;
+          contentAttribute = c;
+          geometryAttribute = g;
+        }
+      }
       if (layerNameAttribute && idAttribute) {
         typeTitle = viewer.getLayer(item[layerNameAttribute]).get('title');
       } else if (geometryAttribute && layerName) {
@@ -370,6 +397,10 @@ const Search = function Search(options = {}) {
     };
 
     const infowindowHandler = function func(list, searchVal) {
+      if (l && i && t && c && g) {
+        idAttribute = i;
+        layerNameAttribute = l;
+      }
       const result = list.reduce((r, a) => {
         /* eslint-disable-next-line no-param-reassign */
         r[a[layerNameAttribute]] = r[a[layerNameAttribute]] || [];
@@ -379,9 +410,11 @@ const Search = function Search(options = {}) {
       const groups = [];
       Object.keys(result).forEach((layername) => {
         const resultArray = result[layername];
+        let layertitle;
+        const rows = [];
         if (viewer.getLayer(layername)) {
-          const layertitle = `${viewer.getLayer(layername).get('title')} (${resultArray.length})`;
-          const rows = [];
+          layertitle = `${viewer.getLayer(layername).get('title')} (${resultArray.length})`;
+
           if (searchlistOptions.makeSelectionButton) {
             const ids = resultArray.map(item => item[idAttribute]);
             const buttonText = searchlistOptions.makeSelectionButtonText || 'Gör urval i kartan';
@@ -414,16 +447,20 @@ const Search = function Search(options = {}) {
             });
             rows.push(makeSelection);
           }
+        } else if (l && i && t && c && g) {
+          layertitle = `${resultArray[0][t]} (${resultArray.length})`;
+        }
 
-          resultArray.forEach((element) => {
-            const row = Component({
-              addClick() {
-                document.getElementById(this.getId()).addEventListener('click', () => {
-                  const source = viewer.getMapSource();
-                  const projCode = viewer.getProjectionCode();
-                  const proj = viewer.getProjection();
-                  const layer = viewer.getLayer(layername);
-                  const id = element[idAttribute];
+        resultArray.forEach((element) => {
+          const row = Component({
+            addClick() {
+              document.getElementById(this.getId()).addEventListener('click', () => {
+                const source = viewer.getMapSource();
+                const projCode = viewer.getProjectionCode();
+                const proj = viewer.getProjection();
+                const layer = viewer.getLayer(layername);
+                const id = element[(l && i && t && c && g) ? i : idAttribute];
+                if (layer) {
                   getFeature(id, layer, source, projCode, proj)
                     .then((res) => {
                       if (res.length > 0) {
@@ -431,58 +468,60 @@ const Search = function Search(options = {}) {
                         featureInfo.showFeatureInfo({ feature: res, layerName: featureLayerName }, { maxZoomLevel, suppressDialog });
                       }
                     });
-                });
-              },
-              onInit() {
-                this.addComponent(El({
-                  cls: 'flex row align-center padding-left padding-right item',
-                  tagName: 'div',
-                  innerHTML: `${element[name]}`
-                }));
-              },
-              render() {
-                const content = this.getComponents().reduce((acc, item) => {
-                  const rendered = item.render();
-                  return acc + rendered;
-                }, '');
-                return `<li class="flex row text-smaller align-center padding-x padding-y-smaller hover pointer" id="${this.getId()}">${content}</li>`;
-              }
-            });
-            rows.push(row);
-          });
-
-          const contentComponent = Component({
-            onInit() {
-              this.addComponents(rows);
-            },
-            onRender() {
-              this.getComponents().forEach((comp) => {
-                comp.addClick();
+                } else {
+                  selectHandler({ text: { label: element.label } });
+                }
               });
+            },
+            onInit() {
+              this.addComponent(El({
+                cls: 'flex row align-center padding-left padding-right item',
+                tagName: 'div',
+                innerHTML: `${element[name]}`
+              }));
             },
             render() {
               const content = this.getComponents().reduce((acc, item) => {
                 const rendered = item.render();
                 return acc + rendered;
               }, '');
-              this.dispatch('render');
-              return `<ul id="${this.getId()}">${content}</ul>`;
+              return `<li class="flex row text-smaller align-center padding-x padding-y-smaller hover pointer" id="${this.getId()}">${content}</li>`;
             }
           });
+          rows.push(row);
+        });
 
-          const groupCmp = Collapse({
-            cls: '',
-            expanded: false,
-            headerComponent: CollapseHeader({
-              cls: 'hover padding-x padding-y-small grey-lightest border-bottom text-small',
-              icon: '#ic_chevron_right_24px',
-              title: layertitle
-            }),
-            contentComponent,
-            collapseX: false
-          });
-          groups.push(groupCmp);
-        }
+        const contentComponent = Component({
+          onInit() {
+            this.addComponents(rows);
+          },
+          onRender() {
+            this.getComponents().forEach((comp) => {
+              comp.addClick();
+            });
+          },
+          render() {
+            const content = this.getComponents().reduce((acc, item) => {
+              const rendered = item.render();
+              return acc + rendered;
+            }, '');
+            this.dispatch('render');
+            return `<ul id="${this.getId()}">${content}</ul>`;
+          }
+        });
+
+        const groupCmp = Collapse({
+          cls: '',
+          expanded: false,
+          headerComponent: CollapseHeader({
+            cls: 'hover padding-x padding-y-small grey-lightest border-bottom text-small',
+            icon: '#ic_chevron_right_24px',
+            title: layertitle
+          }),
+          contentComponent,
+          collapseX: false
+        });
+        groups.push(groupCmp);
       });
 
       let exportButton;
@@ -636,6 +675,11 @@ const Search = function Search(options = {}) {
       if (!title) title = '';
       if (!titleAttribute) titleAttribute = undefined;
       if (!contentAttribute) contentAttribute = undefined;
+      if (!l) l = undefined;
+      if (!i) i = undefined;
+      if (!t) t = undefined;
+      if (!c) c = undefined;
+      if (!g) g = undefined;
       groupSuggestions = Object.prototype.hasOwnProperty.call(options, 'groupSuggestions') ? options.groupSuggestions : false;
       includeSearchableLayers = Object.prototype.hasOwnProperty.call(options, 'includeSearchableLayers') ? options.includeSearchableLayers : false;
       searchableDefault = Object.prototype.hasOwnProperty.call(options, 'searchableDefault') ? options.searchableDefault : false;
