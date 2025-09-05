@@ -78,6 +78,22 @@ validate.image = (image) => {
   return false;
 };
 
+validate.audio = (audio) => {
+  if (audio) {
+    const regex = /\.(opus|flac|webm|weba|wav|ogg|m4a|oga|mid|mp3|aiff|wma|au)$/i;
+    return regex.test(audio);
+  }
+  return false;
+};
+
+validate.video = (video) => {
+  if (video) {
+    const regex = /\.(ogm|wmv|mpg|webm|ogv|mov|asx|mpeg|mp4|m4v|avi)$/i;
+    return regex.test(video);
+  }
+  return false;
+};
+
 validate.color = (color) => {
   if (color) {
     const regex = /#([a-f0-9]{3}){1,2}\b/;
@@ -86,31 +102,13 @@ validate.color = (color) => {
   return false;
 };
 
-validate.searchList = (input, list) => {
-  let isInList = false;
-  if (input) {
-    const hasValue = list[0].value || false;
-    if (hasValue) {
-      const test = list.filter(obj => obj.value === input);
-      return test.length !== 0;
-    }
-    list.forEach((obj) => {
-      try {
-        const { location, extension } = obj;
-        const { location: { href } } = document;
-        const dir = `${href.substring(0, href.lastIndexOf('/'))}/`;
-        const xmlHttp = new XMLHttpRequest();
-        xmlHttp.open('GET', `${dir + location}/${input}.${extension}`, false); // false for synchronous request
-        xmlHttp.send(null);
-        const { status } = xmlHttp;
-        isInList = status >= 200 && status < 400;
-      } catch (error) {
-        console.error('error: ', error);
-      }
-    });
-    return isInList;
+validate.json = (str) => {
+  try {
+    JSON.parse(str);
+  } catch (e) {
+    return false;
   }
-  return isInList;
+  return true;
 };
 
 export default validate;

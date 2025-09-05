@@ -4,16 +4,38 @@ let getPin;
 const permalinkStore = {};
 const additionalMapStateParams = {};
 
-function getSaveLayers(layers) {
+permalinkStore.getSaveLayers = function getSaveLayers(layers, viewer) {
   const saveLayers = [];
   layers.forEach((layer) => {
     const saveLayer = {};
+    const activeThemes = [];
+    function getActiveThemes(style) {
+      for (let i = 0; i < style.length; i += 1) {
+        if (style[i][0].visible !== false) {
+          activeThemes.push(style[i][0].id || style[i][0].name || style[i][0].label);
+        }
+      }
+    }
     saveLayer.v = layer.getVisible() === true ? 1 : 0;
     saveLayer.s = layer.get('legend') === true ? 1 : 0;
     saveLayer.o = Number(layer.get('opacity')) * 100;
+    // only get active themes when thematicStyling is true
+    if (layer.get('thematicStyling')) {
+      const styleName = layer.get('styleName');
+      let style = viewer.getStyles()[styleName];
+      if (layer.get('type') !== 'WMS') {
+        getActiveThemes(style);
+      } else if (layer.get('type') === 'WMS' && layer.get('hasThemeLegend')) {
+        style = viewer.getStyles()[styleName][0].thematic.map(obj => [obj]);
+        getActiveThemes(style);
+      }
+      saveLayer.th = activeThemes.join('~');
+    }
+    // Only get style for layer styles that have changed
+    if (layer.get('defaultStyle') && layer.get('defaultStyle') !== layer.get('styleName')) saveLayer.sn = layer.get('altStyleIndex');
     if (saveLayer.s || saveLayer.v) {
       saveLayer.name = layer.get('name');
-      if (saveLayer.name !== 'measure') {
+      if (saveLayer.name !== 'measure' && !layer.get('drawlayer')) {
         saveLayers.push(urlparser.stringify(saveLayer, {
           topmost: 'name'
         }));
@@ -21,7 +43,7 @@ function getSaveLayers(layers) {
     }
   });
   return saveLayers;
-}
+};
 
 permalinkStore.getState = function getState(viewer, isExtended) {
   const state = {};
@@ -30,7 +52,7 @@ permalinkStore.getState = function getState(viewer, isExtended) {
   const featureinfo = viewer.getFeatureinfo();
   const type = featureinfo.getSelection().type;
   getPin = featureinfo.getPin;
-  state.layers = getSaveLayers(layers);
+  state.layers = permalinkStore.getSaveLayers(layers, viewer);
   state.center = view.getCenter().map(coord => Math.round(coord)).join();
   state.zoom = view.getZoom().toString();
 
@@ -81,8 +103,9 @@ permalinkStore.getState = function getState(viewer, isExtended) {
     state.pin = getPin().getGeometry().getCoordinates().map(coord => Math.round(coord))
       .join();
   }
-  if (viewer.getMapName()) {
-    state.map = viewer.getMapName().split('.')[0];
+  if (viewer.getMapName() && viewer.getMapName().indexOf('.') !== -1) {
+    const lastPointIndex = viewer.getMapName().lastIndexOf('.');
+    state.map = viewer.getMapName().substring(0, lastPointIndex);
   }
 
   Object.keys(additionalMapStateParams).forEach((key) => additionalMapStateParams[key](state));

@@ -10,7 +10,7 @@ import Overlay from './overlay';
 /**
  * The Overlays component works as a container for
  * all group components, besides the background group.
- * The component is divivded in two main cointainers,
+ * The component is divided in two main containers,
  * one for theme groups and one root container for layers
  * and grouplayers that don't belong to a theme.
  */
@@ -20,12 +20,16 @@ const Overlays = function Overlays(options) {
     expanded = true,
     style: styleSettings = {},
     viewer,
-    labelOpacitySlider
+    labelOpacitySlider,
+    localization
   } = options;
 
+  function localize(key) {
+    return localization.getStringByKeys({ targetParentKey: 'legend', targetKey: key });
+  }
   const cls = `${clsSettings} o-layerswitcher-overlays flex row overflow-hidden`.trim();
   const style = dom.createStyle({
-    width: '220px', height: '100%', 'min-width': '220px', ...styleSettings
+    width: '100%', height: '100%', 'min-width': '220px', ...styleSettings
   });
   const nonGroupNames = ['background', 'none'];
   const rootGroupNames = ['root', '', null, undefined];
@@ -36,7 +40,7 @@ const Overlays = function Overlays(options) {
 
   const groupCmps = viewer.getGroups().reduce((acc, group) => {
     if (nonGroupNames.includes(group.name)) return acc;
-    return acc.concat(Group(group, viewer));
+    return acc.concat(Group(viewer, { ...group, localization }));
   }, []);
 
   groupCmps.forEach((groupCmp) => {
@@ -64,7 +68,8 @@ const Overlays = function Overlays(options) {
     secondaryComponent: layerProps,
     cls: 'right flex width-100',
     style: { width: '100%' },
-    legendSlideNav: true
+    legendSlideNav: true,
+    viewer
   });
 
   const navContainer = Component({
@@ -88,7 +93,6 @@ const Overlays = function Overlays(options) {
   });
 
   const overlaysCollapse = Collapse({
-    legendCollapse: true,
     bubble: true,
     collapseX: false,
     cls: 'flex column overflow-hidden width-100',
@@ -133,10 +137,15 @@ const Overlays = function Overlays(options) {
 
   // Hide overlays container when empty
   const onChangeLayer = function onChangeLayer() {
-    const oldNrOverlays = overlays.length;
-    const nrOverlays = readOverlays().length;
-    if (oldNrOverlays !== nrOverlays && nrOverlays < 2 && oldNrOverlays < 2) {
-      document.getElementById(this.getId()).classList.toggle('hidden');
+    const legend = viewer.getControlByName('legend');
+    const state = legend.getState();
+    if (!state.visibleLayersViewActive) {
+      const nrOverlays = readOverlays().length;
+      if (nrOverlays === 0) {
+        document.getElementById(this.getId()).classList.add('hidden');
+      } else {
+        document.getElementById(this.getId()).classList.remove('hidden');
+      }
     }
   };
 
@@ -155,7 +164,7 @@ const Overlays = function Overlays(options) {
     const styleName = layer.get('styleName') || null;
     const layerStyle = styleName ? viewer.getStyle(styleName) : undefined;
     const overlay = Overlay({
-      layer, style: layerStyle, position, viewer
+      layer, style: layerStyle, position, viewer, localization
     });
     const groupName = layer.get('group');
     if (rootGroupNames.includes(groupName)) {
@@ -170,7 +179,7 @@ const Overlays = function Overlays(options) {
           updateLegend(groupCmp);
         }
       } else {
-        console.warn(`Group ${groupName} does not exist`);
+        console.warn(`${localize('addLayerWarningGroup')} ${groupName} ${localize('addLayerWarningDNE')}`);
       }
     }
   };
@@ -182,7 +191,7 @@ const Overlays = function Overlays(options) {
   };
 
   const addGroup = function addGroup(groupOptions) {
-    const groupCmp = Group(groupOptions, viewer);
+    const groupCmp = Group(viewer, { ...groupOptions, localization });
     groupCmps.push(groupCmp);
     if (groupCmp.type === 'grouplayer') {
       const parent = groupCmps.find((cmp) => cmp.name === groupCmp.parent);
@@ -206,7 +215,7 @@ const Overlays = function Overlays(options) {
     const layer = evt.element;
     const layerName = layer.get('name');
     const groupName = layer.get('group');
-    if (groupName) {
+    if (groupName && groupName !== 'root') {
       const groupCmp = groupCmps.find((cmp) => cmp.name === groupName);
       if (groupCmp) {
         groupCmp.removeOverlay(layerName);
@@ -214,7 +223,7 @@ const Overlays = function Overlays(options) {
           document.getElementById(groupCmp.getId()).classList.add('hidden');
         }
       }
-    } else {
+    } else if (groupName === 'root') {
       rootGroup.removeOverlay(layerName);
     }
   };
@@ -225,23 +234,32 @@ const Overlays = function Overlays(options) {
     if (groupCmp) {
       const index = groupCmps.indexOf(groupCmp);
       groupCmps.splice(index, 1);
-      if (groupCmp.parent) {
+      if (groupCmp.type === 'grouplayer') {
         const parentCmp = groupCmps.find((cmp) => cmp.name === groupCmp.parent);
-        if (groupCmp.parent === 'root') {
-          rootGroup.removeGroup(groupCmp);
-        } else if (parentCmp) {
+        if (parentCmp) {
           parentCmp.removeGroup(groupCmp);
+        } else {
+          rootGroup.removeGroup(groupCmp);
         }
       } else {
-        rootGroup.removeGroup(groupCmp);
+        themeGroups.removeGroup(groupCmp);
       }
     }
+  };
+
+  const getGroups = function getGroups() {
+    return groupCmps;
   };
 
   return Component({
     onAddGroup,
     onChangeLayer,
     slidenav,
+    getGroups,
+    getOverlays() {
+      return readOverlays();
+    },
+    overlaysCollapse,
     onInit() {
       this.addComponent(overlaysCollapse);
       readOverlays();
@@ -263,7 +281,7 @@ const Overlays = function Overlays(options) {
           const layer = evt.detail.layer;
           const parent = this;
           const layerProperties = LayerProperties({
-            layer, viewer, parent, labelOpacitySlider
+            layer, viewer, parent, labelOpacitySlider, localization
           });
           slidenav.setSecondary(layerProperties);
           slidenav.slideToSecondary();
@@ -273,10 +291,14 @@ const Overlays = function Overlays(options) {
           const opacityInput = secondaryEl.getElementsByTagName('input')[0];
           backBtn.tabIndex = 0;
           backBtn.focus();
-          opacityInput.tabIndex = 0;
+          if (opacityInput) {
+            opacityInput.tabIndex = 0;
+          }
           backBtn.addEventListener('click', () => {
             backBtn.tabIndex = -99;
-            opacityInput.tabIndex = -99;
+            if (opacityInput) {
+              opacityInput.tabIndex = -99;
+            }
           }, false);
           slidenav.on('slide', () => {
             el.classList.remove('width-100');

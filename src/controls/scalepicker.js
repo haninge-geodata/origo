@@ -4,13 +4,18 @@ import mapUtils from '../maputils';
 const Scalepicker = function Scalepicker(options = {}) {
   const {
     buttonPrefix = '',
-    listItemPrefix = ''
+    listItemPrefix = '',
+    localization
   } = options;
   let map;
   let viewer;
   let projection;
   let resolutions;
   let dropdown;
+
+  function localize(key) {
+    return localization.getStringByKeys({ targetParentKey: 'scalepicker', targetKey: key });
+  }
 
   function getScales() {
     return resolutions.map(resolution => `${listItemPrefix}${mapUtils.resolutionToFormattedScale(resolution, projection)}`);
@@ -50,9 +55,15 @@ const Scalepicker = function Scalepicker(options = {}) {
         cls: 'o-scalepicker text-white flex',
         contentCls: 'bg-grey-darker text-smallest rounded',
         buttonCls: 'bg-black text-white',
-        ariaLabel: 'Välj skala',
+        ariaLabel: localize('selectScaleAriaLabel'),
         buttonIconCls: 'white'
       });
+    },
+    hide() {
+      document.getElementById(dropdown.getId()).classList.add('hidden');
+    },
+    unhide() {
+      document.getElementById(dropdown.getId()).classList.remove('hidden');
     },
     render() {
       const el = dom.html(dropdown.render());

@@ -1,3 +1,5 @@
+@use './variables';
+
 .collapse-container {
   overflow: hidden;
   position: relative;
@@ -36,4 +38,9 @@
   &.expanded {
     height: calc(100% - 2rem);
   }
+}
+
+.move-item {
+  background-color: variables.$blue;
+  opacity: 0.2;
 }

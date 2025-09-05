@@ -6,6 +6,11 @@ const Fullscreen = function Fullscreen(options = {}) {
   let {
     target
   } = options;
+  const localization = options.localization;
+
+  function localize(key) {
+    return localization.getStringByKeys({ targetParentKey: 'fullscreen', targetKey: key });
+  }
 
   let viewer;
   let fullscreenButton;
@@ -28,7 +33,7 @@ const Fullscreen = function Fullscreen(options = {}) {
           goFullScreen();
         },
         icon: '#ic_fullscreen_24px',
-        tooltipText: 'Visa stor karta',
+        tooltipText: localize('fullscreenButtonTooltip'),
         tooltipPlacement: 'east'
       });
       if (!target) target = `${viewer.getMain().getNavigation().getId()}`;
@@ -39,6 +44,12 @@ const Fullscreen = function Fullscreen(options = {}) {
       }
     },
     onInit() {
+    },
+    hide() {
+      document.getElementById(fullscreenButton.getId()).classList.add('hidden');
+    },
+    unhide() {
+      document.getElementById(fullscreenButton.getId()).classList.remove('hidden');
     },
     render() {
       const htmlString = fullscreenButton.render();

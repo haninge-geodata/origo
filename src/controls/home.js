@@ -11,6 +11,11 @@ const Home = function Home(options = {}) {
 
   let viewer;
   let homeButton;
+  const localization = options.localization;
+
+  function localize(key) {
+    return localization.getStringByKeys({ targetParentKey: 'home', targetKey: key });
+  }
 
   const zoomToHome = function zoomToHome() {
     viewer.getMap().getView().fit(extent, { duration: 1000 });
@@ -37,9 +42,15 @@ const Home = function Home(options = {}) {
           zoomToHome();
         },
         icon: '#ic_home_24px',
-        tooltipText: 'Zooma till hela kartan',
+        tooltipText: localize('zoomHomeButtonTooltip'),
         tooltipPlacement: 'east'
       });
+    },
+    hide() {
+      document.getElementById(homeButton.getId()).classList.add('hidden');
+    },
+    unhide() {
+      document.getElementById(homeButton.getId()).classList.remove('hidden');
     },
     render() {
       const htmlString = homeButton.render();

@@ -4,9 +4,13 @@ import Modify from 'ol/interaction/Modify';
 import Snap from 'ol/interaction/Snap';
 import Collection from 'ol/Collection';
 import Feature from 'ol/Feature';
-import { LineString } from 'ol/geom';
+import { LineString, MultiPolygon, MultiLineString, MultiPoint, Polygon } from 'ol/geom';
 import { noModifierKeys } from 'ol/events/condition';
-import { Modal } from '../../ui';
+import VectorSource from 'ol/source/Vector';
+import VectorLayer from 'ol/layer/Vector';
+import { squaredDistance, toFixed } from 'ol/math';
+import { Button, Element as El, Modal, Component } from '../../ui';
+import FloatingPanel from '../../ui/floatingpanel';
 import store from './editsstore';
 import generateUUID from '../../utils/generateuuid';
 import transactionHandler from './transactionhandler';
@@ -22,6 +26,7 @@ import topology from '../../utils/topology';
 import attachmentsform from './attachmentsform';
 import relatedTablesForm from './relatedtablesform';
 import relatedtables from '../../utils/relatedtables';
+import Style from '../../style';
 
 const editsStore = store();
 let editLayers = {};
@@ -34,7 +39,6 @@ let attributes;
 let title;
 let draw;
 let hasDraw;
-let hasAttribute;
 let hasSnap;
 let select;
 let modify;
@@ -42,7 +46,6 @@ let snap;
 let viewer;
 let featureInfo;
 let modal;
-let sList;
 /** Roll back copy of geometry that is currently being modified (if any) */
 let modifyGeometry;
 /** The feature that is currently being drawn (if any). Must be reset when draw is finished or abandoned as OL resuses its feature and
@@ -56,8 +59,21 @@ let allowEditGeometry;
 /** List that tracks the state when editing related tables */
 let breadcrumbs = [];
 let autoCreatedFeature = false;
+let floatingPanelCmp = false;
+let preselectedFeature;
+let traceHighligtLayer;
+let snapTolerance;
+let snapSources;
+let traceSource;
+let useTrace;
+let modifyDrawSnapInteraction;
+let modifyDrawInteraction;
+let component;
 
 function isActive() {
+  // FIXME: this only happens at startup as they are set to null on closing. If checking for null/falsley/not truely it could work as isVisible with
+  // the exption that it can not determine if it is visble before interactions are set, i.e. it can't be used to determine if interactions should be set.
+  // Right now it does not matter as it is not used anywhere critical.
   if (modify === undefined || select === undefined) {
     return false;
   }
@@ -65,6 +81,11 @@ function isActive() {
 }
 
 function setActive(editType) {
+  map.removeInteraction(modifyDrawSnapInteraction);
+  modifyDrawSnapInteraction = null;
+  map.removeInteraction(modifyDrawInteraction);
+  modifyDrawInteraction = null;
+
   switch (editType) {
     case 'modify':
       draw.setActive(false);
@@ -82,10 +103,10 @@ function setActive(editType) {
       select.setActive(false);
       break;
     default:
-      draw.setActive(false);
-      hasDraw = false;
+      if (draw) draw.setActive(false);
       if (modify) modify.setActive(true);
-      select.setActive(true);
+      if (select) select.setActive(true);
+      hasDraw = false;
       break;
   }
 }
@@ -116,7 +137,7 @@ function getFeaturesByIds(type, layer, ids) {
 /**
  * Helper that calculates the default value for one attribute
  * @param {any} attribConf The list entry from "attributes"-configuration that default value should be calculated for
- * @returns The default value for provided attribute
+ * @returns The default value for provided attribute or undefined if no default value
  */
 function getDefaultValueForAttribute(attribConf) {
   const defaultsConfig = attribConf.defaultValue;
@@ -150,8 +171,12 @@ function getDefaultValueForAttribute(attribConf) {
           return isoDate.slice(0, 19);
       }
     }
+  } else if (attribConf.type === 'checkbox' && attribConf.config && attribConf.config.uncheckedValue) {
+    // Checkboxes defaults to unchecked value if no default value is specified. If no uncheckedValue is specified it
+    // will default to unchecked by some magic javascript falsly comparison later.
+    return attribConf.config.uncheckedValue;
   }
-  // Consistent return
+  // This attribute has no default value
   return undefined;
 }
 
@@ -161,10 +186,13 @@ function getDefaultValueForAttribute(attribConf) {
  * @returns {object} An object with attributes names as properties and the default value as value.
  */
 function getDefaultValues(attrs) {
-  return attrs.filter(attribute => attribute.name && attribute.defaultValue)
+  return attrs.filter(attribute => attribute.name)
     .reduce((prev, curr) => {
       const previous = prev;
-      previous[curr.name] = getDefaultValueForAttribute(curr);
+      const defaultValue = getDefaultValueForAttribute(curr);
+      if (defaultValue !== undefined) {
+        previous[curr.name] = defaultValue;
+      }
       return previous;
     }, {});
 }
@@ -269,9 +297,47 @@ async function addFeature(feature) {
     editAttributes(feature);
   }
 }
+/**
+ * Checks if a feature's geometry type is same as current edit layer's type. If it can be converted to
+ * correct type it will do that e.g. creating a multi variant of a single geometry.
+ * @param {any} f Feature to check
+ * @returns {boolean} True if feature matches layer
+ */
+function ensureCorrectGeometryType(f) {
+  //  Correct geometry type to conform to edit layer
+  const featureGeometryType = f.getGeometry().getType();
+  const layerGeometryType = editLayers[currentLayer].get('geometryType');
+  if (featureGeometryType !== layerGeometryType) {
+    if (featureGeometryType === 'Polygon' && layerGeometryType === 'MultiPolygon') {
+      const multiPoly = new MultiPolygon([f.getGeometry()]);
+      f.setGeometry(multiPoly);
+      return true;
+    }
+    if (featureGeometryType === 'LineString' && layerGeometryType === 'MultiLineString') {
+      const multiLine = new MultiLineString([f.getGeometry()]);
+      f.setGeometry(multiLine);
+      return true;
+    }
+    if (featureGeometryType === 'Point' && layerGeometryType === 'MultiPoint') {
+      const multiPoint = new MultiPoint([f.getGeometry()]);
+      f.setGeometry(multiPoint);
+      return true;
+    }
+  }
+  return featureGeometryType === layerGeometryType;
+}
+
+/**
+ * Clears all traces of an active trace
+ */
+function clearTrace() {
+  traceHighligtLayer.getSource().clear();
+  traceSource.clear();
+}
 
 // Handler for OL Draw interaction
 function onDrawEnd(evt) {
+  clearTrace();
   const f = evt.feature;
 
   // Reset pointer to drawFeature, OL resuses the same feature
@@ -283,6 +349,12 @@ function onDrawEnd(evt) {
   // Remove identical vertices by doing a simplify using a small tolerance. Not the most efficient, but it's only one row for me to write and
   // freehand produces so many vertices that a clean up is still a good idea.
   f.setGeometry(f.getGeometry().simplify(0.00001));
+
+  if (!ensureCorrectGeometryType(f)) {
+    // This is a configuration problem. You have added a tool that produces incorrect geometry type
+    console.error('Incorrect geometry type for layer');
+    return;
+  }
 
   // If live validation did its job, we should not have to validate here, but freehand bypasses all controls and we can't tell if freehand was used.
   if (validateOnDraw && !topology.isGeometryValid(f.getGeometry())) {
@@ -303,10 +375,11 @@ function onDrawStart(evt) {
 }
 
 /**
- * Called when draw is aborted from OL
+ * Called when draw is aborted from OL, typically by shift-click
  * */
 function onDrawAbort() {
   drawFeature = null;
+  clearTrace();
 }
 /**
  * Called by OL on mouse down to check if a vertex should be added
@@ -411,7 +484,7 @@ function onCustomDrawEnd(e) {
   // Check if a feature has been created, or tool canceled
   const feature = e.detail.feature;
   if (feature) {
-    if (feature.getGeometry().getType() !== editLayers[currentLayer].get('geometryType')) {
+    if (!ensureCorrectGeometryType(feature)) {
       alert('Kan inte lägga till en geometri av den typen i det lagret');
     } else {
       // Must move geometry to correct property. Setting geometryName is not enough.
@@ -430,7 +503,8 @@ function addSnapInteraction(sources) {
   const snapInteractions = [];
   sources.forEach((source) => {
     const interaction = new Snap({
-      source
+      source,
+      pixelTolerance: snapTolerance
     });
     snapInteractions.push(interaction);
     map.addInteraction(interaction);
@@ -453,6 +527,9 @@ function removeInteractions() {
     select = null;
     draw = null;
     snap = null;
+    // The select interaction is deleted and recreated so we must send the select event manually as
+    // the selection collection events are not fired when interaction is destroyed effectively selecting nothing.
+    component.dispatch('select', []);
   }
 }
 
@@ -472,14 +549,115 @@ function setAllowedOperations() {
   }
 }
 
+/**
+ * Helper that adds candidate linear strings as features to be displayed as trace possibilities if they
+ * are clicked on. Mimics what OL does in Draw interaction, but in less code as it uses higher level functions
+ * @param {any} coordinate
+ * @param {any} coordinates
+ */
+function appendTraceTarget(coordinate, coordinates) {
+  const x = coordinate[0];
+  const y = coordinate[1];
+  const geom = new LineString(coordinates);
+  const nearestPoint = geom.getClosestPoint(coordinate);
+  // Round distance so we can determine if point is on line. It still is pretty small so
+  // snapping must be activated in order to have any chance at actually hitting a line.
+  const squaredD = toFixed(squaredDistance(x, y, nearestPoint[0], nearestPoint[1]), 10);
+  if (squaredD === 0) {
+    traceHighligtLayer.getSource().addFeature(new Feature(geom));
+  }
+}
+
+/**
+ * Breaks down a complex geometry to linearstrings that can be traced.
+ * Mimics the implementation in OL
+ * @param {any} coordinate
+ * @param {any} geometry
+ * @returns
+ */
+function appendGeometryTraceTargets(coordinate, geometry) {
+  if (geometry instanceof LineString) {
+    appendTraceTarget(coordinate, geometry.getCoordinates());
+    return;
+  }
+  if (geometry instanceof MultiLineString || geometry instanceof Polygon) {
+    const coordinates = geometry.getCoordinates();
+    coordinates.forEach(currRing => {
+      appendTraceTarget(coordinate, currRing);
+    });
+    return;
+  }
+  if (geometry instanceof MultiPolygon) {
+    const polys = geometry.getCoordinates();
+    polys.forEach(currPoly => {
+      currPoly.forEach(currRing => {
+        appendTraceTarget(coordinate, currRing);
+      });
+    });
+  }
+  // other types cannot be traced
+}
+
+/**
+ * Callback that OL draw calls before a trace is started or ended. Too bad we don't get to know why it is called
+ * Sets up features for tracing, as trace can only handle one vector source, so we have do load candidates into one source
+ * to support tracing from all layers that we can snap to.
+ * @param {any} evt
+ * @returns {boolean} If false operation will be aborted
+ */
+function traceCallback(evt) {
+  // Try to figure out if we're about to start or end a trace. As OL won't let us know which it is we have to guess,
+  // so don't base any crucial logic around it.
+  const traceActive = traceHighligtLayer.getSource().getFeatures().length > 0;
+
+  // Get som candidates for snapping where we clicked. It will contain a lot of false positives.
+  // This is roughly the same algorithm as OL uses, which means layer does not have to be visible!
+  // Actual snap tolerance value is actually not important, mouse has already snapped and OL uses another value,
+  // but it is a nice value to use.
+  const lowerLeft = map.getCoordinateFromPixel([
+    evt.pixel[0] - snapTolerance,
+    evt.pixel[1] + snapTolerance
+  ]);
+  const upperRight = map.getCoordinateFromPixel([
+    evt.pixel[0] + snapTolerance,
+    evt.pixel[1] - snapTolerance
+  ]);
+  const extent = [lowerLeft[0], lowerLeft[1], upperRight[0], upperRight[1]];
+  const candidateFeatures = [];
+  snapSources.forEach(currSource => {
+    candidateFeatures.push(...currSource.getFeaturesInExtent(extent));
+  });
+  clearTrace();
+  // This is what Draw interaction gets, it will narrow it down itself
+  traceSource.addFeatures(candidateFeatures);
+  // Try to figure out which segments OL will use for tracing by mimicing their method and
+  // add all segments as features to visualize where it is possible to trace.
+  // It would have been a lot easier if OL just had exposed getTraceTargets()
+  // As we don't know for sure if we're actually starting or ending trace, we just toggle visibility of
+  // possible trace linestrings. OL will hopefully always do the right thing, but if we don't mimic OL exactly
+  // the visualization may be out of sync until drawing is finished or aborted.
+  if (!traceActive) {
+    candidateFeatures.forEach(currCandidate => {
+      appendGeometryTraceTargets(evt.coordinate, currCandidate.getGeometry());
+    });
+  }
+
+  // Return true to allow the trace start/stop.
+  return true;
+}
 function setInteractions(drawType) {
   const editLayer = editLayers[currentLayer];
   attributes = editLayer.get('attributes');
   title = editLayer.get('title') || 'Information';
+  hasSnap = editLayer.get('snap');
   const drawOptions = {
     type: editLayer.get('geometryType'),
-    geometryName: editLayer.get('geometryName')
+    geometryName: editLayer.get('geometryName'),
+    traceSource
   };
+  if (hasSnap && useTrace) {
+    drawOptions.trace = traceCallback;
+  }
   if (drawType) {
     Object.assign(drawOptions, shapes(drawType));
   }
@@ -490,9 +668,16 @@ function setInteractions(drawType) {
   removeInteractions();
   draw = new Draw(drawOptions);
   hasDraw = false;
-  hasAttribute = false;
   select = new Select({
-    layers: [editLayer]
+    layers: [editLayer],
+    multi: !!floatingPanelCmp
+  });
+  // Dispatch Component event when selection changes. 'change' is never emitted from Collection, so it's both 'add' and 'remove'.
+  // select interaction's 'select' event is not fired when the feature collection is manipulated manually, so we take events from
+  // the collection instead.
+  select.getFeatures().on('add', () => {
+    const featureArray = select.getFeatures().getArray();
+    component.dispatch('select', featureArray);
   });
   select.on('select', (evt) => {
     evt.selected.forEach(async (selectedFeature) => {
@@ -505,6 +690,84 @@ function setInteractions(drawType) {
       }
     });
   });
+  select.getFeatures().on('remove', () => {
+    const featureArray = select.getFeatures().getArray();
+    component.dispatch('select', featureArray);
+  });
+  if (floatingPanelCmp) {
+    floatingPanelCmp.hide();
+    select.on('select', () => {
+      if (select.getFeatures().getLength() > 1) {
+        const featureListAttributes = editLayer.get('featureListAttributes');
+        const listCmp = [];
+        const featureArray = select.getFeatures().getArray();
+        featureArray.forEach(feature => {
+          if (typeof feature.getStyle() === 'function') {
+            const styleArr = feature.getStyle()(feature);
+            styleArr.forEach(style => style.setZIndex(10));
+          }
+          let buttonText = '';
+          if (featureListAttributes && featureListAttributes.length > 0) {
+            featureListAttributes.forEach(attribute => {
+              if (attribute.toLowerCase() === 'id') {
+                buttonText += `id: ${feature.getId()}<br />`;
+              } else {
+                buttonText += feature.get(attribute) ? `${attribute}: ${feature.get(attribute)}<br />` : '';
+              }
+            });
+          } else {
+            buttonText += `ID: ${feature.getId()}`;
+          }
+          const featureButton = Button({
+            text: buttonText,
+            state: 'initial',
+            cls: 'text-align-left hover light',
+            click() {
+              select.getFeatures().clear();
+              select.getFeatures().push(feature);
+              floatingPanelCmp.dispatch('resetButtonStates');
+              floatingPanelCmp.dispatch('removeMouseenter');
+              this.setState('active');
+            },
+            mouseenter() {
+              select.getFeatures().clear();
+              select.getFeatures().push(feature);
+              floatingPanelCmp.dispatch('resetButtonStates');
+              this.setState('active');
+            }
+          });
+          const listItem = El({
+            tagName: 'li',
+            components: [featureButton]
+          });
+          listCmp.push(listItem);
+          floatingPanelCmp.on('resetButtonStates', () => {
+            featureButton.setState('initial');
+            if (document.getElementById(featureButton.getId())) {
+              document.getElementById(featureButton.getId()).blur();
+            }
+          });
+          floatingPanelCmp.on('removeMouseenter', () => {
+            featureButton.dispatch('removeMouseenter');
+          });
+        });
+        const content = El({
+          tagName: 'ul',
+          components: listCmp
+        });
+        floatingPanelCmp.changeContent(content);
+        floatingPanelCmp.show();
+      } else {
+        floatingPanelCmp.hide();
+      }
+    });
+  }
+
+  if (preselectedFeature) {
+    select.getFeatures().push(preselectedFeature);
+  }
+  // Clear it so we won't get stuck on this feature. This makes it unnecessary to clear it anywhere else.
+  preselectedFeature = null;
   if (allowEditGeometry) {
     modify = new Modify({
       features: select.getFeatures()
@@ -524,20 +787,35 @@ function setInteractions(drawType) {
   setActive();
 
   // If snap should be active then add snap internactions for all snap layers
-  hasSnap = editLayer.get('snap');
   if (hasSnap) {
+    // FIXME: selection will almost certainly be empty as featureInfo is cleared
     const selectionSource = featureInfo.getSelectionLayer().getSource();
-    const snapSources = editLayer.get('snapLayers') ? getSnapSources(editLayer.get('snapLayers')) : [editLayer.get('source')];
+    snapSources = editLayer.get('snapLayers') ? getSnapSources(editLayer.get('snapLayers')) : [editLayer.get('source')];
     snapSources.push(selectionSource);
     snap = addSnapInteraction(snapSources);
   }
 }
 
-function setEditLayer(layerName) {
-  // It is not possible to actually change layer while having breadcrubs as all modals must be closed, which will
-  // pop off all breadcrumbs.
-  // But just in case something changes, reset the breadcrumbs when a new layer is edited.
+/** Closes all modals and resets breadcrumbs */
+function closeAllModals() {
+  // Close all modals before resetting breadcrumbs to get rid of tags in DOM
+  if (modal) modal.closeModal();
+  modal = null;
+  breadcrumbs.forEach(br => {
+    if (br.modal) br.modal.closeModal();
+  });
+  if (breadcrumbs.length > 0) {
+    currentLayer = breadcrumbs[0].layerName;
+    title = breadcrumbs[0].title;
+    attributes = breadcrumbs[0].attributes;
+  }
   breadcrumbs = [];
+}
+
+function setEditLayer(layerName) {
+  // Close all modals first and restore state. This can only happen if calling using api, as
+  // the modal prevents user from clicking in the map conrol
+  closeAllModals();
   currentLayer = layerName;
   setAllowedOperations();
   setInteractions();
@@ -643,6 +921,9 @@ function onDeleteSelected() {
   }
 }
 
+/**
+ * Starts the draw tool if the current layer has a defined geometryType.
+ */
 function startDraw() {
   if (!editLayers[currentLayer].get('geometryType')) {
     alert(`"geometryType" har inte angivits för ${editLayers[currentLayer].get('name')}`);
@@ -653,6 +934,9 @@ function startDraw() {
   }
 }
 
+/**
+ * Cancels the draw tool and resets relevant states.
+ */
 function cancelDraw() {
   setActive();
   if (hasDraw) {
@@ -673,11 +957,6 @@ function onChangeShape(e) {
     setInteractions(e.detail.shape);
     startDraw();
   }
-}
-
-function cancelAttribute() {
-  modal.closeModal();
-  dispatcher.emitChangeEdit('attribute', false);
 }
 
 /**
@@ -701,8 +980,15 @@ function onModalClosed() {
     attributes = lastBread.attributes;
 
     // State is restored, now show parent modal instead and refresh as the title attribute might have changed
-    modal.show();
-    refreshRelatedTablesForm(lastBread.feature);
+    if (modal) {
+      modal.show();
+    }
+    if (lastBread.feature) {
+      refreshRelatedTablesForm(lastBread.feature);
+    }
+  } else {
+    // last modal to be closed. Set to null so we can check if there is an modal.
+    modal = null;
   }
 }
 
@@ -741,7 +1027,9 @@ function onAttributesAbort(features) {
     abortBtnEl.addEventListener('click', (e) => {
       abortBtnEl.blur();
       features.forEach((feature) => {
-        deleteFeature(feature, editLayers[currentLayer]).then(() => select.getFeatures().clear());
+        deleteFeature(feature, viewer.getLayer(currentLayer)).then(() => {
+          if (select) select.getFeatures().clear();
+        });
       });
       modal.closeModal();
       // The modal does not fire close event when it is closed externally
@@ -760,51 +1048,63 @@ function onAttributesSave(features, attrs) {
   document.getElementById(`o-save-button-${currentLayer}`).addEventListener('click', (e) => {
     const editEl = {};
     const valid = {};
-    const fileReaders = [];
+    let checkboxValues = [];
     attrs.forEach((attribute) => {
       // Get the input container class
       const containerClass = `.${attribute.elId}`;
       // Get the input attributes
       // FIXME: Don't have to get from DOM, the same values are in 'attribute'
       // and it would be enough to call getElementId once anyway (called numerous times later on).
-      const inputType = document.getElementById(attribute.elId).getAttribute('type');
-      const inputValue = document.getElementById(attribute.elId).value;
-      const inputName = document.getElementById(attribute.elId).getAttribute('name');
-      const inputId = document.getElementById(attribute.elId).getAttribute('id');
-      const inputRequired = document.getElementById(attribute.elId).required;
+
+      let inputType = attribute.type ? attribute.type : '';
+      // Check again for not missing when checkbox is part of multiple choice checkboxes
+      inputType = document.getElementById(`${attribute.elId}-0`) ? 'checkboxgroup' : inputType;
+      const inputValue = document.getElementById(attribute.elId) ? document.getElementById(attribute.elId).value : '';
+      const inputName = attribute.name ? attribute.name : '';
+      const inputId = attribute.elId ? attribute.elId : '';
+      const inputRequired = document.getElementById(attribute.elId) ? document.getElementById(attribute.elId).required : '';
 
       // If hidden element it should be excluded
       // By sheer luck, this prevents attributes to be changed in batch edit mode when checkbox is not checked.
       // If this code is changed, it may be necessary to excplict check if the batch edit checkbox is checked for this attribute.
       if (!document.querySelector(containerClass) || document.querySelector(containerClass).classList.contains('o-hidden') === false) {
         // Check if checkbox. If checkbox read state.
-        if (inputType === 'checkbox') {
-          editEl[attribute.name] = document.getElementById(attribute.elId).checked ? 1 : 0;
+        if (inputType === 'checkboxgroup') {
+          if (document.getElementById(`${attribute.elId}-0`).getAttribute('type') === 'checkbox') {
+            const separator = attribute.separator ? attribute.separator : ';';
+            const freetextOptionPrefix = attribute.freetextOptionPrefix ? attribute.freetextOptionPrefix : 'freetext_option:';
+            const freetextOptionValueSeparator = attribute.freetextOptionValueSeparator ? attribute.freetextOptionValueSeparator : '=';
+            if (attribute.options && attribute.options.length > 0) {
+              Array.from(document.getElementsByName(attribute.name)).forEach((element) => {
+                if (element.tagName === 'INPUT' && element.getAttribute('type') === 'checkbox' && element.checked === true) {
+                  // Check if this is a free text checkbox
+                  if (element.nextElementSibling.getAttribute('type') === 'text') {
+                    checkboxValues.push(`${freetextOptionPrefix}${element.getAttribute('value')}${freetextOptionValueSeparator}${element.nextElementSibling.value.trim()}`);
+                  } else {
+                    checkboxValues.push(element.getAttribute('value'));
+                  }
+                }
+              });
+              editEl[attribute.name] = checkboxValues.join(separator);
+            } else {
+              editEl[attribute.name] = document.getElementById(attribute.elId).checked ? 1 : 0;
+            }
+          }
+        } else if (inputType === 'checkbox') {
+          const checkedValue = (attribute.config && attribute.config.checkedValue) || 1;
+          const uncheckedValue = (attribute.config && attribute.config.uncheckedValue) || 0;
+          editEl[attribute.name] = document.getElementById(attribute.elId).checked ? checkedValue : uncheckedValue;
+        } else if (attribute.type === 'searchList') {
+          // SearchList may have its value in another place than the input element itself. Query the "Component" instead.
+          // Note that inputValue still contains the value of the input element, which is  used to validate required.
+          // No other validation is performed on searchList as the only thing that can be checked now is that value is in list
+          // and that is handled inside the searchList itself.
+          editEl[attribute.name] = attribute.searchList.getValue();
+        } else if (attribute.type === 'image' || attribute.type === 'audio' || attribute.type === 'video') {
+          // File input's value is the filename, but the media itself is stored in the model
+          editEl[attribute.name] = attribute.val;
         } else { // Read value from input text, textarea or select
           editEl[attribute.name] = inputValue;
-        }
-      }
-      // Check if file. If file, read and trigger resize
-      if (inputType === 'file') {
-        const input = document.getElementById(attribute.elId);
-        const file = input.files[0];
-
-        if (file) {
-          const fileReader = new FileReader();
-          fileReader.onload = () => {
-            getImageOrientation(file, (orientation) => {
-              imageresizer(fileReader.result, attribute, orientation, (resized) => {
-                editEl[attribute.name] = resized;
-                const imageresized = new CustomEvent('imageresized');
-                document.dispatchEvent(imageresized);
-              });
-            });
-          };
-
-          fileReader.readAsDataURL(file);
-          fileReaders.push(fileReader);
-        } else {
-          editEl[attribute.name] = document.getElementById(attribute.elId).getAttribute('value');
         }
       }
 
@@ -931,6 +1231,26 @@ function onAttributesSave(features, attrs) {
             errorMsg.remove();
           }
           break;
+        case 'audio':
+          valid.audio = validate.audio(inputValue) || inputValue === '' ? inputValue : false;
+          if (!valid.audio && inputValue !== '') {
+            if (!errorMsg) {
+              errorOn.insertAdjacentHTML('afterend', `<div class="o-${inputId} errorMsg fade-in padding-bottom-small">${errorText}</div>`);
+            }
+          } else if (errorMsg) {
+            errorMsg.remove();
+          }
+          break;
+        case 'video':
+          valid.video = validate.video(inputValue) || inputValue === '' ? inputValue : false;
+          if (!valid.video && inputValue !== '') {
+            if (!errorMsg) {
+              errorOn.insertAdjacentHTML('afterend', `<div class="o-${inputId} errorMsg fade-in padding-bottom-small">${errorText}</div>`);
+            }
+          } else if (errorMsg) {
+            errorMsg.remove();
+          }
+          break;
         case 'color':
           valid.color = validate.color(inputValue) || inputValue === '' ? inputValue : false;
           if (!valid.color && inputValue !== '') {
@@ -941,33 +1261,16 @@ function onAttributesSave(features, attrs) {
             errorMsg.remove();
           }
           break;
-        case 'searchList':
-          if (attribute.required || false) {
-            const { list } = attribute;
-            valid.searchList = validate.searchList(inputValue, list) || inputValue === '' ? inputValue : false;
-            if (!valid.searchList && inputValue !== '') {
-              errorOn.parentElement.insertAdjacentHTML('afterend', `<div class="o-${inputId} errorMsg fade-in padding-bottom-small">${errorText}</div>`);
-            } else if (errorMsg) {
-              errorMsg.remove();
-            }
-          } else {
-            valid.searchList = true;
-          }
-          break;
+
         default:
       }
       valid.validates = !Object.values(valid).includes(false);
+      checkboxValues = [];
     });
 
     // If valid, continue
     if (valid.validates) {
-      if (fileReaders.length > 0 && fileReaders.every(reader => reader.readyState === 1)) {
-        document.addEventListener('imageresized', () => {
-          attributesSaveHandler(features, editEl);
-        });
-      } else {
-        attributesSaveHandler(features, editEl);
-      }
+      attributesSaveHandler(features, editEl);
 
       document.getElementById(`o-save-button-${currentLayer}`).blur();
       modal.closeModal();
@@ -978,6 +1281,10 @@ function onAttributesSave(features, attrs) {
   });
 }
 
+/**
+ * Adds an event listener to a dependency element and toggles the visibility of a container element.
+ * @returns {Function} A function that accepts an object to configure the event listener.
+ */
 function addListener() {
   const fn = (obj) => {
     document.getElementById(obj.elDependencyId).addEventListener(obj.eventType, () => {
@@ -1000,6 +1307,38 @@ function addListener() {
   return fn;
 }
 
+/**
+ * Returns a function that adds an event handler to enable/disable the textbox for a free text checkbox
+ *
+ * @function
+ * @name addCheckboxListener
+ * @kind function
+ * @param {any} ): (obj
+ * @returns {void}
+ */
+function addCheckboxListener() {
+  const fn = (obj) => {
+    Array.from(document.getElementsByName(obj.name)).forEach((element) => {
+      // Add a listener on the checkbox if it has input text as next element
+      if (element.tagName === 'INPUT' && element.getAttribute('type') === 'checkbox' && element.nextElementSibling.getAttribute('type') === 'text') {
+        element.addEventListener('change', () => {
+          if (element.checked === true) {
+            document.getElementById(element.nextElementSibling.id).disabled = false;
+          } else {
+            document.getElementById(element.nextElementSibling.id).value = '';
+            document.getElementById(element.nextElementSibling.id).disabled = true;
+          }
+        });
+      }
+    });
+  };
+
+  return fn;
+}
+
+/**
+ * Returns a function that adds an event handler to read an image file when user selects a file.
+ * */
 function addImageListener() {
   const fn = (obj) => {
     const fileReader = new FileReader();
@@ -1008,17 +1347,147 @@ function addImageListener() {
       if (ev.target.files && ev.target.files[0]) {
         document.querySelector(`${containerClass} img`).classList.remove('o-hidden');
         document.querySelector(`${containerClass} input[type=button]`).classList.remove('o-hidden');
-        fileReader.onload = (e) => {
-          document.querySelector(`${containerClass} img`).setAttribute('src', e.target.result);
+        fileReader.onload = () => {
+          // When the file has been read, rotate it and resize to configured max size or default max
+          // Don't know why it's rotated. Probably something to do with iphones that store images upside down.
+          getImageOrientation(ev.target.files[0], (orientation) => {
+            imageresizer(fileReader.result, obj, orientation, (resized) => {
+              // Display the image in the form
+              document.querySelector(`${containerClass} img`).setAttribute('src', resized);
+              // Store the image data in the model so it can be retreived when saving without having to read the file again
+              // or pick it up from the img tag
+              // eslint-disable-next-line no-param-reassign
+              obj.val = resized;
+            });
+          });
         };
         fileReader.readAsDataURL(ev.target.files[0]);
       }
     });
-
+    // Find the remove button and attach event handler.
     document.querySelector(`${containerClass} input[type=button]`).addEventListener('click', (e) => {
-      document.getElementById(obj.elId).setAttribute('value', '');
+      // Clear the filename
       document.getElementById(obj.elId).value = '';
+      // Also clear the model value
+      // eslint-disable-next-line no-param-reassign
+      obj.val = '';
       document.querySelector(`${containerClass} img`).classList.add('o-hidden');
+      e.target.classList.add('o-hidden');
+    });
+  };
+
+  return fn;
+}
+
+/**
+ * Returns a function that adds an event handler to read an audio file when user selects a file.
+ *
+ * @function
+ * @name addAudioListener
+ * @kind function
+ * @param {any} ): (obj
+ * @returns {void}
+ */
+function addAudioListener() {
+  const fn = (obj) => {
+    const fileReader = new FileReader();
+    const containerElement = document.getElementsByClassName(`.${obj.elId}`);
+
+    if (!containerElement) return;
+    const inputElement = document.querySelector(`.${obj.elId} > input[type='file']`);
+    const inputUrlElement = document.querySelector(`.${obj.elId} > input[type='url']`);
+    const audioElement = document.querySelector(`.${obj.elId} > audio:first-of-type`);
+    const buttonElement = document.querySelector(`.${obj.elId} > input[type='button']`);
+
+    inputElement.addEventListener('change', (ev) => {
+      if (ev.target.files && ev.target.files[0]) {
+        audioElement.classList.remove('o-hidden');
+        buttonElement.classList.remove('o-hidden');
+        fileReader.onload = (e) => {
+          audioElement.src = e.target.result;
+          // eslint-disable-next-line no-param-reassign
+          obj.val = e.target.result;
+        };
+        fileReader.readAsDataURL(ev.target.files[0]);
+      }
+    });
+    inputUrlElement.addEventListener('input', () => {
+      audioElement.classList.remove('o-hidden');
+      buttonElement.classList.remove('o-hidden');
+      audioElement.src = inputUrlElement.value;
+      // eslint-disable-next-line no-param-reassign
+      obj.val = inputUrlElement.value;
+    });
+
+    // Find the remove button and attach event handler.
+    buttonElement.addEventListener('click', (e) => {
+      // Clear the filename
+      document.getElementById(obj.elId).value = '';
+      // Also clear the model value
+      // eslint-disable-next-line no-param-reassign
+      obj.val = '';
+      inputElement.value = '';
+      inputUrlElement.value = '';
+      audioElement.classList.add('o-hidden');
+      buttonElement.classList.add('o-hidden');
+      e.target.classList.add('o-hidden');
+    });
+  };
+
+  return fn;
+}
+
+/**
+ * Returns a function that adds an event handler to read an video file when user selects a file.
+ *
+ * @function
+ * @name addVideoListener
+ * @kind function
+ * @param {any} ): (obj
+ * @returns {void}
+ */
+function addVideoListener() {
+  const fn = (obj) => {
+    const fileReader = new FileReader();
+    const containerElement = document.getElementsByClassName(`.${obj.elId}`);
+
+    if (!containerElement) return;
+    const inputElement = document.querySelector(`.${obj.elId} > input[type='file']`);
+    const inputUrlElement = document.querySelector(`.${obj.elId} > input[type='url']`);
+    const videoElement = document.querySelector(`.${obj.elId} > video:first-of-type`);
+    const buttonElement = document.querySelector(`.${obj.elId} > input[type='button']`);
+
+    inputElement.addEventListener('change', (ev) => {
+      if (ev.target.files && ev.target.files[0]) {
+        videoElement.classList.remove('o-hidden');
+        buttonElement.classList.remove('o-hidden');
+        fileReader.onload = (e) => {
+          videoElement.src = e.target.result;
+          // eslint-disable-next-line no-param-reassign
+          obj.val = e.target.result;
+        };
+        fileReader.readAsDataURL(ev.target.files[0]);
+      }
+    });
+    inputUrlElement.addEventListener('input', () => {
+      videoElement.classList.remove('o-hidden');
+      buttonElement.classList.remove('o-hidden');
+      videoElement.src = inputUrlElement.value;
+      // eslint-disable-next-line no-param-reassign
+      obj.val = inputUrlElement.value;
+    });
+
+    // Find the remove button and attach event handler.
+    buttonElement.addEventListener('click', (e) => {
+      // Clear the filename
+      document.getElementById(obj.elId).value = '';
+      // Also clear the model value
+      // eslint-disable-next-line no-param-reassign
+      obj.val = '';
+      inputElement.value = '';
+      inputUrlElement.value = '';
+      videoElement.classList.add('o-hidden');
+      buttonElement.classList.add('o-hidden');
       e.target.classList.add('o-hidden');
     });
   };
@@ -1041,6 +1510,15 @@ function addBatchEditListener() {
     });
   };
   return fn;
+}
+
+/**
+ * Makes an input into an searchList (aweseome). Called after model DOM i created.
+ * @param {any} obj
+ */
+function turnIntoSearchList(obj) {
+  const el = document.getElementById(obj.elId);
+  return searchList(el, { list: obj.list, config: obj.config });
 }
 
 /**
@@ -1112,13 +1590,32 @@ function editAttributes(feat) {
           } else {
             alert('Villkor verkar inte vara rätt formulerat. Villkor formuleras enligt principen change:attribute:value');
           }
+        } else if (obj.type === 'checkboxgroup') {
+          if (obj.options && obj.options.length > 0 && obj.val) {
+            const separator = obj.separator ? obj.separator : ';';
+            obj.val = obj.val.split(separator);
+          }
+          obj.isVisible = true;
+          obj.elId = `input-${currentLayer}-${obj.name}`;
+          obj.addListener = addCheckboxListener();
         } else if (obj.type === 'image') {
           obj.isVisible = true;
           obj.elId = `input-${currentLayer}-${obj.name}`;
           obj.addListener = addImageListener();
+        } else if (obj.type === 'audio') {
+          obj.isVisible = true;
+          obj.elId = `input-${currentLayer}-${obj.name}`;
+          obj.addListener = addAudioListener();
+        } else if (obj.type === 'video') {
+          obj.isVisible = true;
+          obj.elId = `input-${currentLayer}-${obj.name}`;
+          obj.addListener = addVideoListener();
         } else {
           obj.isVisible = true;
           obj.elId = `input-${currentLayer}-${obj.name}`;
+        }
+        if (obj.type === 'searchList') {
+          obj.searchListListener = turnIntoSearchList;
         }
         if (isBatchEdit && !('constraint' in obj)) {
           // Create an additional ckeckbox, that controls if this attribute should be changed
@@ -1159,7 +1656,7 @@ function editAttributes(feat) {
       attachmentsForm = `<div id="o-attach-form-${currentLayer}"></div>`;
     }
 
-    let form = `<div id="o-form">${formElement}${relatedTablesFormHTML}${attachmentsForm}<br><div class="o-form-save"><input id="o-save-button-${currentLayer}" type="button" value="OK" aria-label="OK"></input></div></div>`;
+    let form = `<div id="o-form">${formElement}${relatedTablesFormHTML}${attachmentsForm}<br><div class="o-form-save"><input id="o-save-button-${currentLayer}" type="button" value="OK" class="o-editor-input" aria-label="OK"></input></div></div>`;
     if (autoCreatedFeature) {
       form = `<div id="o-form">${formElement}${relatedTablesFormHTML}${attachmentsForm}<br><div class="o-form-save"><input id="o-save-button-${currentLayer}" type="button" value="Spara" aria-label="Spara"></input><input id="o-abort-button-${currentLayer}" type="button" value="Ta bort" aria-label="Ta bort"></input></div></div>`;
       autoCreatedFeature = false;
@@ -1199,9 +1696,14 @@ function editAttributes(feat) {
       }
     }
 
+    // Execute the function that need the DOM objects to operate on
     attributeObjects.forEach((obj) => {
       if ('addListener' in obj) {
         obj.addListener(obj);
+      }
+      if ('searchListListener' in obj) {
+        // eslint-disable-next-line no-param-reassign
+        obj.searchList = obj.searchListListener(obj);
       }
     });
 
@@ -1217,6 +1719,10 @@ function editAttributes(feat) {
   }
 }
 
+/**
+ * Handles toggling of editing tools based on the triggered event.
+ * @param {Event} e - The triggered event containing tool details.
+ */
 function onToggleEdit(e) {
   const { detail: { tool } } = e;
   e.stopPropagation();
@@ -1228,12 +1734,7 @@ function onToggleEdit(e) {
       cancelDraw();
     }
   } else if (tool === 'attribute' && allowEditAttributes) {
-    if (hasAttribute === false) {
-      editAttributes();
-      sList = sList || new searchList();
-    } else {
-      cancelAttribute();
-    }
+    editAttributes();
   } else if (tool === 'delete' && allowDelete) {
     onDeleteSelected();
   } else if (tool === 'edit') {
@@ -1245,8 +1746,14 @@ function onToggleEdit(e) {
   }
 }
 
+/**
+ * Handles changes in edit state based on the triggered event.
+ * @param {Event} e - The triggered event containing tool and active status details.
+ */
 function onChangeEdit(e) {
   const { detail: { tool, active } } = e;
+
+  // Cancel drawing if another tool becomes active
   if (tool !== 'draw' && active) {
     cancelDraw();
   }
@@ -1302,6 +1809,184 @@ async function onAddChild(e) {
 }
 
 /**
+ * Opens the attribute editor dialog for a feature. The dialog excutes asynchronously and never returns anything.
+ * @param {any} feature
+ * @param {any} layer
+ */
+function editAttributesDialogApi(featureId, layerName = null) {
+  const layer = viewer.getLayer(layerName);
+  const feature = layer.getSource().getFeatureById(featureId);
+  // Hijack the current layer for a while. If there's a modal visible it is closed (without saving) as editAttributes can not handle
+  // multiple dialogs for the same layer so to be safe we always close.
+  // Restoring currentLayer is performed in onModalClosed(), as we can't await the modal.
+  closeAllModals();
+  // If editing in another layer, add a breadcrumb to restore layer when modal is closed.
+  if (layerName && layerName !== currentLayer) {
+    const newBreadcrumb = {
+      layerName: currentLayer,
+      title,
+      attributes
+    };
+    breadcrumbs.push(newBreadcrumb);
+    title = layer.get('title');
+    attributes = layer.get('attributes');
+    // Don't call setEditLayer, as that would change tools which requires that editor is active,
+    // and if it is a table it would probably crash on somehing geometry related.
+    currentLayer = layerName;
+  }
+  editAttributes(feature);
+}
+
+/**
+ * Creates a new feature and adds it to a layer. Default values are set. If autosave is set, it returns when
+ * the feature has been saved and thus will have a permanent database Id. If not autosave it returns immediately (async of course) and
+ * the id will be a temporary Guid that can be used until the feature is saved, then it will be replaced. Keeping a reference to the feature
+ * itself will still work.
+ * @param {any} layerName Name of layer to add a feature to
+ * @param {any} geometry A geomtry to add to the feature that will be created
+ * @returns {Feature} the newly created feature
+ */
+async function createFeatureApi(layerName, geometry = null) {
+  const editLayer = editLayers[layerName];
+  if (!editLayer) {
+    throw new Error('Ej redigerbart lager');
+  }
+  const newfeature = new Feature();
+  if (geometry) {
+    if (geometry.getType() !== editLayer.get('geometryType')) {
+      throw new Error('Kan inte lägga till en geometri av den typen i det lagret');
+    }
+    newfeature.setGeometryName(editLayer.get('geometryName'));
+    newfeature.setGeometry(geometry);
+  }
+  await addFeatureToLayer(newfeature, layerName);
+  if (autoForm) {
+    autoCreatedFeature = true;
+    editAttributesDialogApi(newfeature.getId(), layerName);
+  }
+  return newfeature;
+}
+
+async function deleteFeatureApi(featureId, layerName) {
+  const feature = viewer.getLayer(layerName).getSource().getFeatureById(featureId);
+  const layer = viewer.getLayer(layerName);
+  await deleteFeature(feature, layer);
+}
+
+function setActiveLayerApi(layerName) {
+  const layer = editLayers[layerName];
+  if (!layer || layer.get('isTable')) {
+    // Can't set tables as active in editor as the editor can't handle them. They are in list though, as they may
+    // be edited through api
+    throw new Error(`Layer ${layerName} är inte redigerbart`);
+  }
+  setEditLayer(layerName);
+}
+
+/**
+ * Callback when split-line-by-point tool finishes drawing. Performs the actual splitting
+ * @param {any} evt a OL DrawEvent
+ */
+function onSplitLineByPointEnd(evt) {
+  // TODO: Need to verify?
+  const selectedFeature = select.getFeatures().item(0);
+  // Clear selection to avoid it being stuck selected
+  select.getFeatures().clear();
+  const line = selectedFeature.getGeometry();
+  const originalCoords = line.getCoordinates();
+  const cuttingCoord = evt.feature.getGeometry().getCoordinates();
+  let segmentNo = 0;
+  let part1Coords = [];
+  let part2Coords = [];
+  // TODO: remove empty if statement and inverse logic or toast
+  if (topology.coordIsEqual(cuttingCoord, line.getFirstCoordinate()) || topology.coordIsEqual(cuttingCoord, line.getLastCoordinate())) {
+    // Can only happen on actual first point as we would trigger on lastCoord on the semgment before this happens
+    // Nothing to do, can't cut on first or last
+    console.log('Första eller sista. Inget att dela');
+  } else {
+    // Find the segmen where to split
+    line.forEachSegment((startCoord, endCoord) => {
+      const currSegment = new LineString([startCoord, endCoord]);
+      const nearestPoint = currSegment.getClosestPoint(cuttingCoord);
+      // Round distance so we can determine if point is on line. It still is pretty small so
+      // snapping must be activated in order to have any chance at actually hitting a line.
+      const squaredD = toFixed(squaredDistance(cuttingCoord[0], cuttingCoord[1], nearestPoint[0], nearestPoint[1]), 10);
+      if (squaredD === 0) {
+        // Check if we hit an existing vertex, then split here, otherwise insert new point.
+        if (topology.coordIsEqual(cuttingCoord, currSegment.getLastCoordinate())) {
+          part1Coords = originalCoords.slice(0, segmentNo + 2);
+          part2Coords = originalCoords.slice(segmentNo + 1);
+        } else {
+          // Have to insert a new vertex where clicked
+          part1Coords = originalCoords.slice(0, segmentNo + 1);
+          part1Coords.push(cuttingCoord);
+          part2Coords = originalCoords.slice(segmentNo + 1);
+          part2Coords.unshift(cuttingCoord);
+        }
+        // Return from forEach. We found our point, no need to loop further.
+        return true;
+      }
+      segmentNo += 1;
+      // Consistent return for forEach , keep lopping until found.
+      return false;
+    });
+  }
+  if (part2Coords.length > 1) {
+    // Click actually hit the line, split where clicked.
+    // Start with the easy one, change geom of original line
+    selectedFeature.getGeometry().setCoordinates(part1Coords);
+    saveFeature({
+      feature: selectedFeature,
+      layerName: currentLayer,
+      action: 'update'
+    });
+    // The litte tricker, create a copy with the rest of the line
+    const newFeature = selectedFeature.clone();
+    newFeature.setGeometry(new LineString(part2Coords));
+    newFeature.setId(generateUUID());
+    const layer = viewer.getLayer(currentLayer);
+    layer.getSource().addFeature(newFeature);
+    saveFeature({
+      feature: newFeature,
+      layerName: currentLayer,
+      action: 'insert'
+    });
+  }
+
+  // We're done, either the line is split or user clicked outside geometry.
+  // Reset editor state.
+  setActive();
+}
+
+/**
+ * Selects a modify too as the active interaction
+ * Only to be called when a feature has already been selected and user has pressed
+ * the corresponding tool button.
+ * @param {any} toolName Name of the tool
+ */
+function setModifyToolApi(toolName) {
+  // This function is a placeholder for future tools. It should switch out tool name and act accordingly
+  if (toolName === 'split-line-by-point') {
+    const selectedFeature = select.getFeatures().item(0);
+    // Create a new temporary draw interaction depending on toolName
+    // This can be removed in the handler as it is a part of the event.
+    const drawInterationProps = {
+      type: 'Point',
+      // Don't emit click events as it will activate select interaction when finished.
+      // The drawend handler will still be called.
+      stopClick: true
+    };
+    // Disable the handler's normal interactions while we're splitting and add or own
+    setActive('custom');
+    modifyDrawInteraction = new Draw(drawInterationProps);
+    modifyDrawInteraction.on('drawend', onSplitLineByPointEnd);
+    modifyDrawSnapInteraction = new Snap({ features: new Collection([selectedFeature]) });
+
+    map.addInteraction(modifyDrawInteraction);
+    map.addInteraction(modifyDrawSnapInteraction);
+  }
+}
+/**
  * Eventhandler called from relatedTableForm when delete button is pressed
  * @param { any } e Event containing layers and features necessary
  */
@@ -1309,31 +1994,88 @@ function onDeleteChild(e) {
   deleteFeature(e.detail.feature, e.detail.layer).then(() => refreshRelatedTablesForm(e.detail.parentFeature));
 }
 
+/**
+ * Sets a feature that will be active for editing when editor is activated. When the edit session starts, the feature's layer must
+ * be active and that state is kept in the editor toolbar and sent through an event, so you better update toolbar as well.
+ * @param {any} feature
+ */
+function preselectFeature(feature) {
+  preselectedFeature = feature;
+}
+
+/**
+ * Creates the handler Component. In reality only one instance can be created as it relies on global variables and DOM ids and DOM events
+ * It isn't a traditional Component as it has no visual elements but it can emit Eventer events.
+ * It communicates with the editor toolbar and forms using DOM events.
+ * @param {any} options
+ * @param {any} v The viewer object
+ * @returns {any} a Component
+ */
 export default function editHandler(options, v) {
-  viewer = v;
-  featureInfo = viewer.getControlByName('featureInfo');
-  map = viewer.getMap();
-  currentLayer = options.currentLayer;
-  editableLayers = options.editableLayers;
+  return Component({
+    onInit() {
+      component = this;
+      viewer = v;
+      map = viewer.getMap();
 
-  // set edit properties for editable layers
-  editLayers = setEditProps(options);
-  editableLayers.forEach((layerName) => {
-    verifyLayer(layerName);
-    if (layerName === currentLayer && options.isActive) {
-      dispatcher.emitEnableInteraction();
-      setEditLayer(layerName);
-    }
+      // Set up a layer for displaying trace possibilities. Do it up front as it may become possible to turn it on later
+      traceHighligtLayer = new VectorLayer({
+        group: 'none',
+        source: new VectorSource(),
+        style: {
+          'stroke-color': 'rgba(100, 255, 0, 1)',
+          'stroke-width': 3
+        },
+        visible: true
+      });
+      if (options.traceStyle) {
+        const s = Style.createStyle({ style: options.traceStyle, viewer });
+        traceHighligtLayer.setStyle(s);
+      }
+      map.addLayer(traceHighligtLayer);
+      traceSource = new VectorSource();
+      useTrace = options.trace;
+
+      featureInfo = viewer.getControlByName('featureInfo');
+      if (options.featureList) {
+        floatingPanelCmp = FloatingPanel({ viewer, type: 'floating', title: 'Välj objekt' });
+        floatingPanelCmp.render();
+      }
+      currentLayer = options.currentLayer;
+      editableLayers = options.editableLayers;
+
+      // set edit properties for editable layers
+      editLayers = setEditProps(options);
+      editableLayers.forEach((layerName) => {
+        verifyLayer(layerName);
+        if (layerName === currentLayer && options.isActive) {
+          dispatcher.emitEnableInteraction();
+          setEditLayer(layerName);
+        }
+      });
+
+      autoSave = options.autoSave;
+      autoForm = options.autoForm;
+      validateOnDraw = options.validateOnDraw;
+      // We set tolerace as we can't read default from OL, but we can set it
+      // Cant' set 0, but that case you can disable snap
+      snapTolerance = options.snapTolerance || 10;
+
+      // Listen to DOM events from menus and forms
+      document.addEventListener('toggleEdit', onToggleEdit);
+      document.addEventListener('changeEdit', onChangeEdit);
+      document.addEventListener('editorShapes', onChangeShape);
+      document.addEventListener('customDrawEnd', onCustomDrawEnd);
+      document.addEventListener(dispatcher.EDIT_CHILD_EVENT, onEditChild);
+      document.addEventListener(dispatcher.ADD_CHILD_EVENT, onAddChild);
+      document.addEventListener(dispatcher.DELETE_CHILD_EVENT, onDeleteChild);
+    },
+    // These functions are called from Editor Component, possibly from its Api so change these calls with caution.
+    createFeature: createFeatureApi,
+    editAttributesDialog: editAttributesDialogApi,
+    deleteFeature: deleteFeatureApi,
+    setActiveLayer: setActiveLayerApi,
+    setModifyTool: setModifyToolApi,
+    preselectFeature
   });
-
-  autoSave = options.autoSave;
-  autoForm = options.autoForm;
-  validateOnDraw = options.validateOnDraw;
-  document.addEventListener('toggleEdit', onToggleEdit);
-  document.addEventListener('changeEdit', onChangeEdit);
-  document.addEventListener('editorShapes', onChangeShape);
-  document.addEventListener('customDrawEnd', onCustomDrawEnd);
-  document.addEventListener(dispatcher.EDIT_CHILD_EVENT, onEditChild);
-  document.addEventListener(dispatcher.ADD_CHILD_EVENT, onAddChild);
-  document.addEventListener(dispatcher.DELETE_CHILD_EVENT, onDeleteChild);
 }

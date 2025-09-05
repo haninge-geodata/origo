@@ -44,13 +44,15 @@ const PrintSettings = function PrintSettings(options = {}) {
     resolution,
     scales,
     scaleInitial,
+    settingsExpanded,
     showMargins,
     showCreated,
     showScale,
     showNorthArrow,
     showPrintLegend,
     rotation,
-    rotationStep
+    rotationStep,
+    localize
   } = options;
 
   let headerComponent;
@@ -110,13 +112,14 @@ const PrintSettings = function PrintSettings(options = {}) {
 
   return Component({
     close,
+    getScaleControl() { return setScaleControl; },
     onInit() {
       openButton = Button({
         cls: 'padding-small icon-smaller round light box-shadow',
         icon: openIcon,
-        tooltipText: 'Visa inställningar',
+        tooltipText: localize('settingsButtonTooltip'),
         tooltipPlacement: 'east',
-        state: 'initial',
+        state: settingsExpanded === true ? 'hidden' : 'initial',
         validStates: ['initial', 'hidden'],
         click() {
           toggle();
@@ -125,9 +128,9 @@ const PrintSettings = function PrintSettings(options = {}) {
       closeButton = Button({
         cls: 'small round margin-top-small margin-right small icon-smaller grey-lightest',
         icon: closeIcon,
-        state: 'hidden',
+        state: settingsExpanded === true ? 'initial' : 'hidden',
         validStates: ['initial', 'hidden'],
-        ariaLabel: 'Stäng',
+        ariaLabel: localize('closeButtonAriaLabel'),
         click() {
           toggle();
         }
@@ -138,10 +141,11 @@ const PrintSettings = function PrintSettings(options = {}) {
         components: [openButton, closeButton]
       });
 
-      const orientationControl = OrientationControl({ orientation });
+      const orientationControl = OrientationControl({ orientation, localize });
       const sizeControl = SizeControl({
         initialSize: size,
-        sizes: Object.keys(sizes)
+        sizes: Object.keys(sizes),
+        localize
       });
       const titleControl = TitleControl({
         title,
@@ -149,7 +153,8 @@ const PrintSettings = function PrintSettings(options = {}) {
         titleAlignment,
         titleSizes,
         titleSize,
-        titleFormatIsVisible
+        titleFormatIsVisible,
+        localize
       });
       const descriptionControl = DescriptionControl({
         description,
@@ -157,18 +162,19 @@ const PrintSettings = function PrintSettings(options = {}) {
         descriptionAlignment,
         descriptionSizes,
         descriptionSize,
-        descriptionFormatIsVisible
+        descriptionFormatIsVisible,
+        localize
       });
       const marginControl = MarginControl({ checked: showMargins });
       const createdControl = CreatedControl({ checked: showCreated });
-      const resolutionControl = ResolutionControl({
+      const resolutionControl = resolutions.length > 1 ? ResolutionControl({
         initialResolution: resolution,
         resolutions
-      });
+      }) : undefined;
       const showScaleControl = ShowScaleControl({ checked: showScale });
       northArrowControl = NorthArrowControl({ showNorthArrow });
       printLegendControl = PrintLegendControl({ showPrintLegend });
-      rotationControl = map.getView().getConstraints().rotation(180) === 180 ? RotationControl({ rotation, rotationStep, map }) : undefined;
+      rotationControl = map.getView().getConstraints().rotation(180) === 180 ? RotationControl({ rotation, rotationStep, map, localize }) : undefined;
       customSizeControl = CustomSizeControl({
         minHeight: sizeCustomMinHeight,
         maxHeight: sizeCustomMaxHeight,
@@ -176,12 +182,14 @@ const PrintSettings = function PrintSettings(options = {}) {
         maxWidth: sizeCustomMaxWidth,
         height: sizes.custom ? sizes.custom[0] : sizeCustomMinHeight,
         width: sizes.custom ? sizes.custom[1] : sizeCustomMinWidth,
-        state: size === 'custom' ? 'active' : 'initial'
+        state: size === 'custom' ? 'active' : 'initial',
+        localize
       });
-      setScaleControl = SetScaleControl({
+      setScaleControl = SetScaleControl(map, {
         scales,
-        initialScale: scaleInitial
-      }, map);
+        initialScale: scaleInitial,
+        localize
+      });
 
       contentComponent = Component({
         onRender() { this.dispatch('render'); },
@@ -200,12 +208,14 @@ const PrintSettings = function PrintSettings(options = {}) {
             setScaleControl,
             resolutionControl,
             showScaleControl,
-            printLegendControl
+            printLegendControl,
+            localize
           });
         }
       });
-      const components = [customSizeControl, marginControl, orientationControl, sizeControl, titleControl, descriptionControl, createdControl, northArrowControl, printLegendControl, setScaleControl, resolutionControl, showScaleControl];
+      const components = [customSizeControl, marginControl, orientationControl, sizeControl, titleControl, descriptionControl, createdControl, northArrowControl, printLegendControl, setScaleControl, showScaleControl];
       if (rotationControl) { components.push(rotationControl); }
+      if (resolutions.length > 1) { components.push(resolutionControl); }
       contentComponent.addComponents(components);
       printSettingsContainer = Collapse({
         cls: 'flex column',
@@ -214,7 +224,8 @@ const PrintSettings = function PrintSettings(options = {}) {
         collapseY: true,
         headerComponent,
         contentComponent,
-        mainCls: 'collapse-scroll'
+        mainCls: 'collapse-scroll',
+        expanded: settingsExpanded === true
       });
       this.addComponent(printSettingsContainer);
 
@@ -232,7 +243,9 @@ const PrintSettings = function PrintSettings(options = {}) {
       createdControl.on('change:check', (evt) => this.dispatch('change:created', evt));
       northArrowControl.on('change:check', (evt) => this.dispatch('change:northarrow', evt));
       printLegendControl.on('change:check', (evt) => this.dispatch('change:printlegend', evt));
-      resolutionControl.on('change:resolution', (evt) => this.dispatch('change:resolution', evt));
+      if (resolutionControl) {
+        resolutionControl.on('change:resolution', (evt) => this.dispatch('change:resolution', evt));
+      }
       setScaleControl.on('change:scale', (evt) => this.dispatch('change:scale', evt));
       showScaleControl.on('change:check', (evt) => this.dispatch('change:showscale', evt));
     },
