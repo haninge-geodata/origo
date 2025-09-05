@@ -32,7 +32,9 @@ import { isHidden, renderSvgIcon } from '../../utils/legendmaker';
 const LayerRow = function LayerRow(options) {
   const {
     layer,
-    viewer
+    viewer,
+    printLegendQgisItemWidth,
+    printLegendQgisItemHeight
   } = options;
 
   /**
@@ -278,7 +280,7 @@ const LayerRow = function LayerRow(options) {
             // styles using only one rule will not have a named rule). This is to handle Layer Groups without rules in some of the contained
             // layer's style
             if (currLayerRules.length > 1) {
-              ruleImageUrl += `&rule=${sourceType === 'QGIS' ? `${encodeURIComponent(currRule.title)}&width=24&height=24` : currRule.name}`;
+              ruleImageUrl += `&rule=${sourceType === 'QGIS' ? `${encodeURIComponent(currRule.title)}&width=${printLegendQgisItemWidth}&height=${printLegendQgisItemHeight}` : currRule.name}`;
             }
           // QGIS Server includes the icon as binary in the JSON response
           } else {
@@ -342,7 +344,9 @@ const LayerRow = function LayerRow(options) {
 
 const LayerRows = function LayerRows(options) {
   const {
-    viewer
+    viewer,
+    printLegendQgisItemWidth,
+    printLegendQgisItemHeight
   } = options;
 
   return Component({
@@ -352,7 +356,7 @@ const LayerRows = function LayerRows(options) {
 
       overlays.forEach((layer) => {
         if (!layer.get('drawlayer')) {
-          overlayEls.push(LayerRow({ layer, viewer }));
+          overlayEls.push(LayerRow({ layer, viewer, printLegendQgisItemWidth, printLegendQgisItemHeight }));
         }
       });
       const layerListCmp = Component({
@@ -374,7 +378,9 @@ const LayerRows = function LayerRows(options) {
 
 export default function PrintLegend(options = {}) {
   const {
-    viewer
+    viewer,
+    printLegendQgisItemWidth,
+    printLegendQgisItemHeight
   } = options;
 
   const setVisible = (display) => {
@@ -387,7 +393,9 @@ export default function PrintLegend(options = {}) {
     },
     async render() {
       const overlaysCmp = LayerRows({
-        viewer
+        viewer,
+        printLegendQgisItemWidth,
+        printLegendQgisItemHeight
       });
 
       return `
