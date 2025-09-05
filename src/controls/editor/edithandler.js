@@ -685,7 +685,7 @@ function setInteractions(drawType) {
       if (layer.get('refreshFeatureOnSelect')) {
         // Replace the geometry and attributes of the feature.
         const existingFeature = layer.getSource().getFeatureById(selectedFeature.getId());
-        const freshFeatures = await layer.getSource().fetchFeatures([selectedFeature.getId()]);
+        const freshFeatures = await layer.getSource().getFeatureFromSourceByIds(selectedFeature.getId());
         existingFeature.setProperties(freshFeatures[0].getProperties());
       }
     });
