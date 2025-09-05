@@ -21,7 +21,6 @@ export default function getfeature(id, layer, source, projCode, proj, extent) {
   projectionCode = projCode;
   projection = proj;
   const serverUrl = source[layer.get('sourceName')].url;
-  const filterType = source[layer.get('sourceName')].filterType;
   const type = layer.get('type');
   // returns a promise with features as result
   if (type === 'AGS_FEATURE') {
