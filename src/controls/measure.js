@@ -813,7 +813,7 @@ const Measure = function Measure({
             },
             data: { tool: 'elevation' },
             icon: '#ic_height_24px',
-            tooltipText: 'Höjd från nationella markhöjdmodellen',
+            tooltipText: localize('elevationTooltip'),
             tooltipPlacement: 'east'
           });
           buttons.push(elevationToolButton);
