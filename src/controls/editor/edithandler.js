@@ -694,6 +694,17 @@ function setInteractions(drawType) {
     const featureArray = select.getFeatures().getArray();
     component.dispatch('select', featureArray);
   });
+  select.on('select', (evt) => {
+    evt.selected.forEach(async (selectedFeature) => {
+      const layer = select.getLayer(selectedFeature);
+      if (layer.get('refreshFeatureOnSelect')) {
+        // Replace the geometry and attributes of the feature.
+        const existingFeature = layer.getSource().getFeatureById(selectedFeature.getId());
+        const freshFeatures = await layer.getSource().getFeatureFromSourceByIds(selectedFeature.getId());
+        existingFeature.setProperties(freshFeatures[0].getProperties());
+      }
+    });
+  });
   select.getFeatures().on('remove', () => {
     const featureArray = select.getFeatures().getArray();
     component.dispatch('select', featureArray);
