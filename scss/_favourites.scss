@@ -1,3 +1,5 @@
-.favourites-hover:hover {
-    transform: scale(1.2);
+@mixin default {
+    .favourites-hover:hover {
+        transform: scale(1.2);
+    }
 }
