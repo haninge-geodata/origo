@@ -54,20 +54,29 @@ export function simpleExportHandler(simpleExportUrl, activeLayer, selectedItems,
 
 /**
  * Makes a HEAD request to find out what the content type of the response will be, so that the
- * response can be handled accordingly. Non-images will be blocked by CORS restrictions unless
- * the server/API is set to allow the client's origin.
+ * response can be handled accordingly. Will fall back to the expected Content-Type if the HEAD
+ * request fails. Non-images will be blocked by CORS restrictions unless the server/API is set to
+ * allow the client's origin.
  * @param {string} url The url to fetch
+ * @param {string} requestMethod The GET request method variant corresponding to the expected response Content-Type
  * @returns {Promise<string>} HTML content containing the response
  */
-async function fetchByContentTypes(url) {
+async function fetchByContentTypes(url, requestMethod) {
   try {
+    let contentType;
     // Perform the HEAD request to check response content type
     const headResponse = await fetch(url, { method: 'HEAD' });
-    if (!headResponse.ok) {
-      throw new Error(`HEAD request failed with status: ${headResponse.status}`);
+    if (headResponse.ok) {
+      // Get the content-type header from the HEAD request's response
+      contentType = headResponse.headers.get('Content-Type');
+    } else {
+      console.error(`HEAD request failed with status: ${headResponse.status}`);
+      if (requestMethod === 'GET_IMAGE') {
+        contentType = 'image/';
+      } else {
+        contentType = 'text/plain';
+      }
     }
-    // Get the content-type header
-    const contentType = headResponse.headers.get('Content-Type');
 
     // Generate content to display based on Content-Type
     if (contentType.startsWith('image/')) {
@@ -150,8 +159,8 @@ export function layerSpecificExportHandler(url, requestMethod, urlParameters, ac
 
   if (requestMethod === 'OPEN') {
     return window.open(requestUrl, '_blank') ? Promise.resolve() : Promise.reject();
-  } else if (requestMethod === 'GET') {
-    return fetchByContentTypes(requestUrl);
+  } else if (requestMethod.startsWith('GET')) {
+    return fetchByContentTypes(requestUrl, requestMethod);
   }
   // eslint-disable-next-line consistent-return
   return fetch(requestUrl, {
@@ -370,7 +379,7 @@ function createExportButtons(
             default:
               break;
           }
-          if (requestMethod === 'GET' && displayExportResponse) {
+          if (requestMethod.startsWith('GET') && displayExportResponse) {
             responseHandler(selectionGroup, data);
           }
         }
