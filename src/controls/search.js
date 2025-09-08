@@ -299,7 +299,7 @@ const Search = function Search(options = {}) {
       const item = data[id];
       let typeTitle;
       if (l && i && t && c && g) {
-        if (viewer.getLayer(data[l])) {
+        if (viewer.getLayer(item[l])) {
           layerNameAttribute = l;
           idAttribute = i;
         } else {
