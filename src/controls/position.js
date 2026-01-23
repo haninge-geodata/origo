@@ -1,13 +1,12 @@
 import MousePosition from 'ol/control/MousePosition';
 import Feature from 'ol/Feature';
 import Point from 'ol/geom/Point';
-import { createStringXY, toStringHDMS } from 'ol/coordinate';
+import { createStringXY, toStringHDMS, format } from 'ol/coordinate';
 import { Component, Icon, Button, Element as El, dom } from '../ui';
 
 const Position = function Position(options = {}) {
   let {
-    title,
-    suffix
+    title
   } = options;
   const {
     noPositionText = '&nbsp;'
@@ -95,10 +94,29 @@ const Position = function Position(options = {}) {
   }
 
   /**
+   *  Returns a function that formats a coordinate according to a provided custom template
+   * @param {string} template
+   * @param {number} fractionDigits
+   */
+  function createCustomStringXY(template, fractionDigits) {
+    return (
+      (coord) => format(coord, template, fractionDigits)
+    );
+  }
+
+  /**
    * Returns a funtion that formats a coordinate to a string depending on configuration
    * */
   function getStringifyFunction() {
-    return currentConfig.dms ? createStringHDMS(precision) : createStringXY(precision);
+    let stringifyFunction;
+    if (currentConfig.dms) {
+      stringifyFunction = createStringHDMS(precision);
+    } else if (currentConfig.template) {
+      stringifyFunction = createCustomStringXY(currentConfig.template, precision);
+    } else {
+      stringifyFunction = createStringXY(precision);
+    }
+    return stringifyFunction;
   }
 
   function addMousePosition() {
@@ -390,7 +408,6 @@ const Position = function Position(options = {}) {
         alert(localize('configError'));
       }
       currentConfig = configArray[0];
-      if (!suffix) suffix = '';
       if (!title) title = undefined;
 
       this.addComponents([containerElement]);
