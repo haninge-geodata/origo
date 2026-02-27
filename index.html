@@ -10,37 +10,15 @@
 	<meta name="referrer" content="same-origin"> -->
 	<title>Origo exempel</title>
 	<link href="css/style.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Josefin Sans">
 	<link rel="shortcut icon" href="img/png/logo.png">
 </head>
 <body>
 <div id="app-wrapper">
 </div>
 <script src="js/origo.js"></script>
-<script src="http://10.100.14.159:9008/build/js/siteplan.js"></script>
 <script type="text/javascript">
-//Init origo
-	var origo = Origo('index.json');
-	origo.on('load', function (viewer) {
-		var siteplan = Siteplan(viewer, {
-			'hintText': 'Skriv in adress',
-			'queryPrefix': 'Haninge', // Set to relevant kommunnamn
-			'urlFastighet': 'http://localhost:3001/origoserver/lm/registerenheter?srid=3006',
-			'url': 'http://localhost:3001/origoserver/lm/addresses?srid=3006',
-			'idIndex': 0,
-			'valueIndex': 1,
-			'eastingIndex': 2,
-			'northingIndex': 3,
-			'relatedPropteryIndex': 4,
-			'urlRelatedProperty': 'http://localhost:3001/origoserver/lm/registerenheter/objectId/enhetsomraden?srid=3006',
-			'backgroundImageUrl': 'http://localhost:9966/img/png/background_large.jpg',
-			'printMargins': { // Should reflect the difference between page size and map size (in pixels). Default is 30/30.
-				'topBottom': 30,
-				'leftRight': 30
-			},
-			'allowOversize': true // If set to true, the user is allowed to pan to an appropriate extent if the selected property is too large for the available scales/page sizes
-		});
-	});
+	//Init origo
+		var origo = Origo('index.json');
 </script>
 </body>
 </html>
