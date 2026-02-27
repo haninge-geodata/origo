@@ -15,6 +15,7 @@ import titleCase from './src/utils/titlecase';
 import * as origoControls from './src/controls';
 import * as origoExtensions from './src/extensions';
 import supports from './src/utils/supports';
+import isOnIos from './src/utils/browser';
 import renderError from './src/utils/rendererror';
 import Style from './src/style';
 import featurelayer from './src/featurelayer';
@@ -207,5 +208,6 @@ Origo.Loader.withLoading = Loader.withLoading;
 Origo.Loader.getInlineSpinner = Spinner;
 Origo.layerType = layerType;
 Origo.mapUtils = mapUtils;
+Origo.isOnIos = isOnIos;
 
 export default Origo;

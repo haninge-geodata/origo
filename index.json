@@ -1,60 +1,50 @@
 {
   "controls": [
     {
-      "name": "home",
-      "options": {
-        "zoomOnStart": true
-      }
-    },
-    {
-      "name": "mapmenu",
-      "options": {
-        "isActive": false
-      }
-    },
-    {
-      "name": "sharemap"
-    },
-    {
-      "name": "geoposition"
-    },
-    {
-      "name": "print"
-    },
-    {
       "name": "about",
       "options": {
-        "buttonText": "Om Origo",
-        "title": "Om Origo",
-        "content": "<p>Origo är ett ramverk för webbkartor. Ramverket bygger på JavaScript-biblioteket OpenLayers. Du kan använda Origo för att skapa egna webbaserade kartapplikationer.</p><br><p>Projektet drivs och underhålls av ett antal svenska kommuner. Besök gärna <a href='https://github.com/origo-map/origo' target='_blank'>Origo på GitHub</a> för mer information.</p>"
+        "placement": "hidden",
+        "buttonText": "Om Tomtkartan",
+        "title": "Om Tomtkartan",
+        "content": "<p>Tomtkartan är ett enkelt utdrag ur kommunens och lantmäteriets baskartor över en fastighet. Den innehåller fastighetsgränser, fastighetsbeteckningar, byggnader, vägar, gatunamn, adressnummer med mera.</p>"
       }
     },
     {
-      "name": "link",
+      "name": "print",
       "options": {
-        "title": "Origo",
-        "url": "https://github.com/origo-map/origo"
-      }
-    },
-    {
-      "name": "legend",
-      "options": {
-        "labelOpacitySlider": "Opacity",
-        "useGroupIndication": true
-      }
-    },
-    {
-      "name": "position",
-      "options": {
-        "title": "Web Mercator",
-        "projections": {
-          "EPSG:4326": "WGS84",
-          "EPSG:3006": "Sweref99 TM"
+        "placement": "screen", /** Hides the print button. Set to "screen" to add button to main screen. */
+        "hideSettings": false, /** Hides the print settings button. */
+        "headerSize": "h1 text-weight-semibold",
+        "showCreated": true,
+        "showPrintFormat": true,
+        "printFormatPrefix": "Utskriftsformat: ",
+        "headerIsVisible": false,
+        "descriptionIsVisible": false,
+        "resolutionIsVisible": false,
+        "mariginIsVisible": false,
+        "createdIsVisible": false,
+        "scaleIsVisible": false,
+        "northArrowIsVisible": false,
+        "legendIsVisible": false,
+        "rotationIsVisible": false,
+        "leftFooterText": "Redovisning av fastighetsgränser i kartan är inte juridiskt gällande. Lantmäterihandlingarnas beslut gäller.<br>&copy Kommunnamn",
+        "logo": {
+          "src": "img/png/logo.png",
+          "cls": ""
+        },
+        /** List of available scales. Add more if needed. */
+        "scales": [
+          "1:1000",
+          "1:750",
+          "1:500",
+          "1:400"
+        ],
+        /** List of available print sizes. Add more if needed. */
+        "sizes": {
+          "a3": [420, 297],
+          "a4": [297, 210]
         }
       }
-    },
-    {
-      "name": "measure"
     }
   ],
   "pageSettings": {
@@ -67,7 +57,7 @@
       "visible": true
     }
   },
-  "projectionCode": "EPSG:3857",
+  "projectionCode": "EPSG:3006",
   "projectionExtent": [
     -20026376.39,
     -20048966.10,
@@ -91,6 +81,8 @@
     8390000
   ],
   "zoom": 5.7,
+  "constrainResolution": false,
+  "constrainOnlyCenter": true,
   "resolutions": [
     156543.03,
     78271.52,
@@ -118,6 +110,9 @@
   "source": {
     "local": {
       "url": "http://localhost/geoserver/wms"
+    },
+     "geowebcache": {
+      "url": "https://geodata.haninge.se/geowebcache/service/wmts"
     }
   },
   "groups": [
@@ -128,131 +123,172 @@
     }
   ],
   "layers": [
-    {
-      "name": "origo-cities",
-      "title": "Origokommuner",
-      "group": "root",
-      "source": "data/origo-cities-3857.geojson",
-      "style": "origo-logo",
-      "type": "GEOJSON",
-      "attributes": [
-        {
-          "name": "name"
-        }
-      ],
-      "visible": true
-    },
-    {
-      "name": "origo-mask",
-      "opacity": 0.25,
-      "title": "origo-mask",
-      "group": "none",
-      "queryable": false,
-      "source": "data/origo-mask-3857.geojson",
-      "style": "mask",
-      "type": "GEOJSON",
-      "visible": true
-    },
-    {
-      "name": "osm",
-      "title": "OpenStreetMap",
+   {
+      "name": "karta_med_fastighetsgranser",
+      "source": "geowebcache",
+      "title": "Karta med fastighetsgränser",
       "group": "background",
       "queryable": false,
-      "style": "karta_osm",
-      "type": "OSM",
-      "visible": true
-    }
+      "style": "karta_fastigheter",
+      "type": "WMTS",
+      "visible": false,
+      "attribution": "&copy Lantmäteriet Geodatasamverkan",
+      "format": "image/png"
+    },
   ],
   "styles": {
     "mask": [
-      [
-        {
-          "stroke": {
-            "color": "rgba(0,0,0,1.0)"
-          },
-          "fill": {
-            "color": "rgba(0,0,0,1.0)"
-          }
-        }
-      ]
-    ],
-    "origo-logo": [
-      [
-        {
-          "label": "Origokommuner",
-          "circle": {
-            "radius": 10,
+        [
+          {
             "stroke": {
-              "color": "rgba(0,0,0,1)",
-              "width": 2.5
+              "color": "rgba(0,0,0,1.0)"
             },
             "fill": {
-              "color": "rgba(255,255,255,0.9)"
+              "color": "rgba(0,0,0,1.0)"
             }
           }
-        },
-        {
-          "circle": {
-            "radius": 2.5,
+        ]
+      ],
+      "selection": [
+        [
+          {
             "stroke": {
-              "color": "rgba(0,0,0,0)",
-              "width": 1
+              "color": "rgba(50,50,50,1.0)",
+              "width": 6,
+              "lineDash": [20, 8],
+              "lineCap": "butt"
+            }
+          }
+        ]
+      ],
+      "polygon-blue": [
+        [
+          {
+            "stroke": {
+              "color": "rgba(0,122,255,1.0)"
             },
             "fill": {
-              "color": "rgba(37,129,196,1)"
+              "color": "rgba(0,122,255,0.5)"
             }
           }
-        }
-      ]
-    ],
-    "cirkel": [
-      [
-        {
-          "circle": {
-            "radius": 6,
+        ]
+      ],
+      "line-red": [
+        [
+          {
             "stroke": {
-              "color": "rgba(0,0,0,1)",
-              "width": 2
-            },
-            "fill": {
-              "color": "rgba(0,0,0,0.5)"
+              "color": "rgba(255,59,48,1.0)",
+              "width": 3
             }
           }
-        }
-      ]
-    ],
-    "karta_osm": [
+        ]
+      ],
+      "line-blue": [
+        [
+          {
+            "stroke": {
+              "color": "rgba(0,112,192,1.0)",
+              "width": 2.4
+            }
+          }
+        ]
+      ],
+      "cirkel": [
+        [
+          {
+            "circle": {
+              "radius": 6,
+              "stroke": {
+                "color": "rgba(0,0,0,1)",
+                "width": 2
+              },
+              "fill": {
+                "color": "rgba(0,0,0,0.5)"
+              }
+            }
+          }
+        ]
+      ],
+      "circle-green": [
+        [
+          {
+            "circle": {
+              "radius": 12,
+              "stroke": {
+                "color": "rgba(102,179,45,1)",
+                "width": 2
+              },
+              "fill": {
+                "color": "rgba(102,179,45,0.5)"
+              }
+            }
+          }
+        ]
+      ],
+      "circle-yellow": [
+        [
+          {
+            "circle": {
+              "radius": 12,
+              "stroke": {
+                "color": "rgba(255,192,0,1)",
+                "width": 2
+              },
+              "fill": {
+                "color": "rgba(255,192,0,0.5)"
+              }
+            }
+          }
+        ]
+      ],
+      "circle-purple": [
+        [
+          {
+            "circle": {
+              "radius": 12,
+              "stroke": {
+                "color": "rgba(164,96,164,1)",
+                "width": 2
+              },
+              "fill": {
+                "color": "rgba(164,96,164,0.5)"
+              }
+            }
+          }
+        ]
+      ],
+      "karta_gra": [
+        [
+          {
+            "image": {
+              "src": "img/png/gra.png"
+            }
+          }
+        ]
+      ],
+      "karta_farg": [
+        [
+          {
+            "image": {
+              "src": "img/png/farg.png"
+            }
+          }
+        ]
+      ],
+      "orto": [
+        [
+          {
+            "image": {
+              "src": "img/png/orto.png"
+            }
+          }
+        ]
+      ],
+      "karta_osm": [
       [
         {
           "image": {
             "src": "img/png/osm.png"
-          }
-        }
-      ]
-    ],
-    "karta_gra": [
-      [
-        {
-          "image": {
-            "src": "img/png/gra.png"
-          }
-        }
-      ]
-    ],
-    "karta_farg": [
-      [
-        {
-          "image": {
-            "src": "img/png/farg.png"
-          }
-        }
-      ]
-    ],
-    "orto": [
-      [
-        {
-          "image": {
-            "src": "img/png/orto.png"
           }
         }
       ]
